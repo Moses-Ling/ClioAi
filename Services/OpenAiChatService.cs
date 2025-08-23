@@ -50,6 +50,19 @@ namespace AudioTranscriptionApp.Services
             // Add other fields like 'finish_reason' if needed
         }
 
+        // Models response DTOs
+        private class ModelsResponse
+        {
+            [JsonProperty("data")]
+            public List<ModelInfo> Data { get; set; }
+        }
+
+        private class ModelInfo
+        {
+            [JsonProperty("id")]
+            public string Id { get; set; }
+        }
+
 
         public OpenAiChatService(string apiKey)
         {
@@ -198,6 +211,79 @@ namespace AudioTranscriptionApp.Services
         } // This closing brace belongs to GetResponseAsync
 
         // Removed extra closing brace here
+
+        // Lists available models from OpenAI's /v1/models endpoint.
+        // Returns a sorted list of model IDs. Optional predicate to filter.
+        public async Task<List<string>> ListModelsAsync(Func<string, bool> filter = null)
+        {
+            Logger.Info("Listing available OpenAI models via /v1/models");
+            if (string.IsNullOrEmpty(_apiKey))
+            {
+                Logger.Error("ListModels failed: API key is not set.");
+                throw new InvalidOperationException("OpenAI API key is not set. Please configure it in Settings.");
+            }
+
+            int currentRetry = 0;
+            int delayMs = InitialDelayMs;
+            while (currentRetry <= MaxRetries)
+            {
+                try
+                {
+                    var response = await _httpClient.GetAsync("/v1/models");
+                    Logger.Info($"Models list response status: {response.StatusCode}");
+                    if (response.IsSuccessStatusCode)
+                    {
+                        string json = await response.Content.ReadAsStringAsync();
+                        var models = JsonConvert.DeserializeObject<ModelsResponse>(json);
+                        var ids = (models?.Data ?? new List<ModelInfo>())
+                                    .Select(m => m?.Id)
+                                    .Where(id => !string.IsNullOrEmpty(id))
+                                    .ToList();
+                        if (filter != null) ids = ids.Where(filter).ToList();
+                        ids.Sort(StringComparer.OrdinalIgnoreCase);
+                        Logger.Info($"Retrieved {ids.Count} models from API.");
+                        return ids;
+                    }
+                    else
+                    {
+                        var errorContent = await response.Content.ReadAsStringAsync();
+                        Logger.Error($"Models API error: {response.StatusCode} - {errorContent}");
+                        if ((int)response.StatusCode == 429 || (int)response.StatusCode >= 500)
+                        {
+                            currentRetry++;
+                            if (currentRetry <= MaxRetries)
+                            {
+                                Logger.Warning($"Retryable models API error. Retrying in {delayMs}ms... (Attempt {currentRetry}/{MaxRetries})");
+                                await Task.Delay(delayMs);
+                                delayMs *= 2;
+                                continue;
+                            }
+                        }
+                        throw new Exception($"Models API error: {response.StatusCode} - {errorContent}");
+                    }
+                }
+                catch (HttpRequestException httpEx)
+                {
+                    Logger.Error($"HTTP error listing models (Attempt {currentRetry + 1}): {httpEx.Message}", httpEx);
+                    currentRetry++;
+                    if (currentRetry <= MaxRetries)
+                    {
+                        Logger.Warning($"Retrying models list in {delayMs}ms... (Attempt {currentRetry}/{MaxRetries})");
+                        await Task.Delay(delayMs);
+                        delayMs *= 2;
+                        continue;
+                    }
+                    throw new Exception($"Network error listing models after {MaxRetries} retries: {httpEx.Message}", httpEx);
+                }
+                catch (JsonException jsonEx)
+                {
+                    Logger.Error($"JSON error parsing models list: {jsonEx.Message}", jsonEx);
+                    throw new Exception($"Error processing models list: {jsonEx.Message}", jsonEx);
+                }
+            }
+
+            throw new Exception("Unexpected exit from models listing loop.");
+        }
 
         public void Dispose()
         {

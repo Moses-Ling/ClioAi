@@ -45,7 +45,7 @@ namespace AudioTranscriptionApp.Services
         }
 
         // Simple downmixer that averages all channels to mono (float)
-        private sealed class DownmixToMonoSampleProvider : ISampleProvider
+        internal sealed class DownmixToMonoSampleProvider : ISampleProvider
         {
             private readonly ISampleProvider _source;
             private readonly WaveFormat _waveFormat;
@@ -84,7 +84,7 @@ namespace AudioTranscriptionApp.Services
         }
 
         // Selects a single channel from a multi-channel source as mono
-        private sealed class SelectChannelSampleProvider : ISampleProvider
+        internal sealed class SelectChannelSampleProvider : ISampleProvider
         {
             private readonly ISampleProvider _source;
             private readonly int _channelIndex;
@@ -145,6 +145,8 @@ namespace AudioTranscriptionApp.Services
         private DateTime _sessionStartTime; // Start time of the entire recording session
         private int _audioChunkSeconds; // Process in configurable chunks
         private readonly TranscriptionService _transcriptionService;
+        private readonly object _reinitLock = new object();
+        private System.Threading.Timer _reinitTimer;
 
         // Audio level monitoring - Phase 3
         private float _systemAudioLevel = 0;
@@ -236,7 +238,7 @@ namespace AudioTranscriptionApp.Services
             Properties.Settings.Default.Save();
             Logger.Info($"System Audio Device ID set and saved: {deviceId ?? "None"}");
             // Re-initialize if not recording
-            if (!_isRecording) InitializeDevicesAndMixer();
+            ScheduleReinit();
         }
 
         public void SetMicrophoneDevice(string deviceId)
@@ -247,7 +249,7 @@ namespace AudioTranscriptionApp.Services
             Properties.Settings.Default.Save();
             Logger.Info($"Microphone Device ID set and saved: {deviceId ?? "None"}");
             // Re-initialize if not recording
-            if (!_isRecording) InitializeDevicesAndMixer();
+            ScheduleReinit();
         }
 
         // V2: Mute Toggle Methods - Phase 3
@@ -586,6 +588,28 @@ namespace AudioTranscriptionApp.Services
                     catch (Exception delEx) { Logger.Warning($"Failed to delete partial downsampled file '{downsampledFilePath}': {delEx.Message}"); }
                 }
                 return null; // Return null if downsampling failed
+            }
+        }
+
+        private void ScheduleReinit(int delayMs = 350)
+        {
+            lock (_reinitLock)
+            {
+                _reinitTimer?.Dispose();
+                _reinitTimer = new System.Threading.Timer(_ =>
+                {
+                    try
+                    {
+                        if (!_isRecording)
+                        {
+                            InitializeDevicesAndMixer();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error("Scheduled re-initialization failed.", ex);
+                    }
+                }, null, delayMs, System.Threading.Timeout.Infinite);
             }
         }
 

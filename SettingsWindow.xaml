@@ -7,7 +7,7 @@
         mc:Ignorable="d"
         Title="Settings"
         WindowStartupLocation="CenterOwner"
-        ResizeMode="NoResize" ShowInTaskbar="False" Height="400" Width="550"> <!-- Corrected Height/Width -->
+        ResizeMode="NoResize" ShowInTaskbar="False" Height="600" Width="550"> <!-- Increased Height to fit About tab -->
     <Grid Margin="15">
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/> <!-- TabControl takes available space -->
@@ -17,65 +17,68 @@
         <TabControl Grid.Row="0">
             <!-- General Settings Tab -->
             <TabItem Header="General">
-                <Grid Margin="10">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/> <!-- Whisper Key -->
-                        <RowDefinition Height="Auto"/> <!-- System Audio Device -->
-                        <RowDefinition Height="Auto"/> <!-- Microphone Device -->
-                        <RowDefinition Height="Auto"/> <!-- Chunk Duration -->
-                        <RowDefinition Height="Auto"/> <!-- Downmix Mode -->
-                        <RowDefinition Height="Auto"/> <!-- Save Path -->
-                        <RowDefinition Height="*"/> <!-- Spacer -->
-                    </Grid.RowDefinitions>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-
-                    <!-- Whisper API Key -->
-                    <Label Grid.Row="0" Grid.Column="0" Content="Whisper API Key:" VerticalAlignment="Center"/>
-                    <Grid Grid.Row="0" Grid.Column="1" Margin="5">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <PasswordBox x:Name="ApiKeyBox" VerticalAlignment="Center" />
-                        <TextBox x:Name="ApiKeyTextBox" VerticalAlignment="Center" Visibility="Collapsed"/>
-                        <CheckBox Grid.Column="1" x:Name="ShowApiKeyCheckBox" Content="Show" VerticalAlignment="Center" Margin="5,0,0,0" Checked="ShowApiKeyCheckBox_Checked" Unchecked="ShowApiKeyCheckBox_Unchecked"/>
-                    </Grid>
-
-                    <!-- System Audio Device -->
-                    <Label Grid.Row="1" Grid.Column="0" Content="System Audio Source:" VerticalAlignment="Center"/>
-                    <ComboBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" x:Name="SystemAudioDeviceComboBox" VerticalAlignment="Center" Margin="5"
-                              ItemsSource="{Binding SystemAudioDevices}" DisplayMemberPath="DisplayName" SelectedValuePath="Id"/>
-
-                    <!-- Microphone Device -->
-                    <Label Grid.Row="2" Grid.Column="0" Content="Microphone Source:" VerticalAlignment="Center"/>
-                    <ComboBox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" x:Name="MicrophoneDeviceComboBox" VerticalAlignment="Center" Margin="5"
-                              ItemsSource="{Binding MicrophoneDevices}" DisplayMemberPath="DisplayName" SelectedValuePath="Id"/>
-
-                    <!-- Chunk Duration -->
-                    <Label Grid.Row="3" Grid.Column="0" Content="Chunk Duration (sec):" VerticalAlignment="Center"/>
-                    <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="5">
-                        <Slider x:Name="ChunkDurationSlider" Minimum="5" Maximum="25" Width="150" ValueChanged="ChunkDurationSlider_ValueChanged" TickFrequency="5" IsSnapToTickEnabled="True"/>
-                        <TextBox x:Name="ChunkDurationTextBox" Width="40" Margin="10,0,0,0" Text="{Binding Value, ElementName=ChunkDurationSlider, StringFormat={}{0:N0}}" IsReadOnly="True"/>
-                    </StackPanel>
-
-                    <!-- Downmix Mode -->
-                    <Label Grid.Row="4" Grid.Column="0" Content="Downmix Mode:" VerticalAlignment="Center"/>
-                    <ComboBox Grid.Row="4" Grid.Column="1" x:Name="DownmixModeComboBox" VerticalAlignment="Center" Margin="5" SelectedIndex="0" ToolTip="How multi‑channel inputs (e.g., 2/4+ ch mics) become mono before mixing.
-Average All Channels: averages all channels.
-Use First Channel: picks channel 1 only.">
-                        <ComboBoxItem Content="Average All Channels" Tag="Average"/>
-                        <ComboBoxItem Content="Use First Channel" Tag="FirstChannel"/>
-                    </ComboBox>
-
-                    <!-- Default Save Path -->
-                    <Label Grid.Row="5" Grid.Column="0" Content="Default Save Path:" VerticalAlignment="Center"/>
-                    <TextBox Grid.Row="5" Grid.Column="1" x:Name="SavePathTextBox" VerticalAlignment="Center" Margin="5"/>
-                    <Button Grid.Row="5" Grid.Column="2" x:Name="BrowseButton" Content="..." Width="30" Margin="5" Click="BrowseButton_Click"/>
-                </Grid>
+                <StackPanel Margin="10" Orientation="Vertical">
+                    <GroupBox Header="Transcription" Margin="0,0,0,10">
+                        <Grid Margin="10,5,10,10">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Label Grid.Row="0" Grid.Column="0" Content="Whisper API Key:" VerticalAlignment="Center"/>
+                            <Grid Grid.Row="0" Grid.Column="1" Margin="5">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <PasswordBox x:Name="ApiKeyBox" VerticalAlignment="Center" />
+                                <TextBox x:Name="ApiKeyTextBox" VerticalAlignment="Center" Visibility="Collapsed"/>
+                                <CheckBox Grid.Column="1" x:Name="ShowApiKeyCheckBox" Content="Show" VerticalAlignment="Center" Margin="5,0,0,0" Checked="ShowApiKeyCheckBox_Checked" Unchecked="ShowApiKeyCheckBox_Unchecked"/>
+                            </Grid>
+                            <Label Grid.Row="1" Grid.Column="0" Content="Default Save Path:" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="1" Grid.Column="1" x:Name="SavePathTextBox" VerticalAlignment="Center" Margin="5"/>
+                            <Button Grid.Row="1" Grid.Column="2" x:Name="BrowseButton" Content="..." Width="30" Margin="5" Click="BrowseButton_Click"/>
+                            <Label Grid.Row="2" Grid.Column="0" Content="Chunk Duration (sec):" VerticalAlignment="Center"/>
+                            <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="5">
+                                <Slider x:Name="ChunkDurationSlider" Minimum="5" Maximum="25" Width="150" ValueChanged="ChunkDurationSlider_ValueChanged" TickFrequency="5" IsSnapToTickEnabled="True"/>
+                                <TextBox x:Name="ChunkDurationTextBox" Width="40" Margin="10,0,0,0" Text="{Binding Value, ElementName=ChunkDurationSlider, StringFormat={}{0:N0}}" IsReadOnly="True"/>
+                            </StackPanel>
+                        </Grid>
+                    </GroupBox>
+                    <GroupBox Header="Audio">
+                        <Grid Margin="10,5,10,10">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Label Grid.Row="0" Grid.Column="0" Content="System Audio Source:" VerticalAlignment="Center"/>
+                            <StackPanel Grid.Row="0" Grid.Column="1" Margin="5">
+                                <ComboBox x:Name="SystemAudioDeviceComboBox" VerticalAlignment="Center" ItemsSource="{Binding SystemAudioDevices}" DisplayMemberPath="DisplayName" SelectedValuePath="Id"/>
+                                <TextBlock x:Name="SystemFormatTextBlock" FontStyle="Italic" Foreground="Gray"/>
+                            </StackPanel>
+                            <Label Grid.Row="1" Grid.Column="0" Content="Microphone Source:" VerticalAlignment="Center"/>
+                            <StackPanel Grid.Row="1" Grid.Column="1" Margin="5">
+                                <ComboBox x:Name="MicrophoneDeviceComboBox" VerticalAlignment="Center" ItemsSource="{Binding MicrophoneDevices}" DisplayMemberPath="DisplayName" SelectedValuePath="Id"/>
+                                <TextBlock x:Name="MicFormatTextBlock" FontStyle="Italic" Foreground="Gray"/>
+                            </StackPanel>
+                            <Label Grid.Row="2" Grid.Column="0" Content="Downmix Mode:" VerticalAlignment="Center"/>
+                            <ComboBox Grid.Row="2" Grid.Column="1" x:Name="DownmixModeComboBox" VerticalAlignment="Center" Margin="5" SelectedIndex="0" ToolTip="How multi-channel inputs become mono before mixing. Average: averages all channels. First Channel: picks channel 1 only.">
+                                <ComboBoxItem Content="Average All Channels" Tag="Average"/>
+                                <ComboBoxItem Content="Use First Channel" Tag="FirstChannel"/>
+                            </ComboBox>
+                        </Grid>
+                    </GroupBox>
+                </StackPanel>
             </TabItem>
 
             <!-- Clean Up Settings Tab -->
@@ -103,17 +106,14 @@ Use First Channel: picks channel 1 only.">
                         <CheckBox Grid.Column="1" x:Name="ShowCleanupApiKeyCheckBox" Content="Show" VerticalAlignment="Center" Margin="5,0,0,0" Checked="ShowCleanupApiKeyCheckBox_Checked" Unchecked="ShowCleanupApiKeyCheckBox_Unchecked"/>
                     </Grid>
 
-                    <!-- Cleanup Model -->
-                    <Label Grid.Row="1" Grid.Column="0" Content="Cleanup Model:" VerticalAlignment="Center"/>
-                    <ComboBox Grid.Row="1" Grid.Column="1" x:Name="CleanupModelComboBox" VerticalAlignment="Center" Margin="5">
-                        <ComboBoxItem Content="gpt-4o"/>
-                        <ComboBoxItem Content="gpt-4o-mini"/>
-                        <ComboBoxItem Content="gpt-4-turbo"/>
-                    </ComboBox>
+                    <!-- Cleanup Model (free text) -->
+                    <Label Grid.Row="1" Grid.Column="0" Content="Model:" VerticalAlignment="Center"/>
+                    <TextBox Grid.Row="1" Grid.Column="1" x:Name="CleanupModelTextBox" VerticalAlignment="Center" Margin="5" ToolTip="Enter model ID per provider; free-text to avoid deprecations."/>
+                    <Button Grid.Row="1" Grid.Column="2" x:Name="CleanupListModelsButton" Content="List Models" Width="95" Margin="5" Click="CleanupListModelsButton_Click"/>
 
                     <!-- Cleanup Prompt -->
-                    <Label Grid.Row="2" Grid.Column="0" Content="System Prompt:" VerticalAlignment="Top" Margin="0,5,0,0"/>
-                    <TextBox Grid.Row="2" Grid.Column="1" x:Name="CleanupPromptTextBox" VerticalAlignment="Stretch" Margin="5" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Height="150"/> <!-- Added Height -->
+                    <Label Grid.Row="2" Grid.Column="0" Content="Prompt:" VerticalAlignment="Top" Margin="0,5,0,0"/>
+                    <TextBox Grid.Row="2" Grid.Column="1" x:Name="CleanupPromptTextBox" VerticalAlignment="Stretch" Margin="5" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Height="180"/>
 
                 </Grid>
             </TabItem>
@@ -143,17 +143,14 @@ Use First Channel: picks channel 1 only.">
                         <CheckBox Grid.Column="1" x:Name="ShowSummarizeApiKeyCheckBox" Content="Show" VerticalAlignment="Center" Margin="5,0,0,0" Checked="ShowSummarizeApiKeyCheckBox_Checked" Unchecked="ShowSummarizeApiKeyCheckBox_Unchecked"/>
                     </Grid>
 
-                    <!-- Summarize Model -->
-                    <Label Grid.Row="1" Grid.Column="0" Content="Summarize Model:" VerticalAlignment="Center"/>
-                    <ComboBox Grid.Row="1" Grid.Column="1" x:Name="SummarizeModelComboBox" VerticalAlignment="Center" Margin="5">
-                        <ComboBoxItem Content="gpt-4o"/>
-                        <ComboBoxItem Content="gpt-4o-mini"/>
-                        <ComboBoxItem Content="gpt-4-turbo"/>
-                    </ComboBox>
+                    <!-- Summarize Model (free text) -->
+                    <Label Grid.Row="1" Grid.Column="0" Content="Model:" VerticalAlignment="Center"/>
+                    <TextBox Grid.Row="1" Grid.Column="1" x:Name="SummarizeModelTextBox" VerticalAlignment="Center" Margin="5" ToolTip="Enter model ID per provider; free-text to avoid deprecations."/>
+                    <Button Grid.Row="1" Grid.Column="2" x:Name="SummarizeListModelsButton" Content="List Models" Width="95" Margin="5" Click="SummarizeListModelsButton_Click"/>
 
                     <!-- Summarize Prompt -->
-                    <Label Grid.Row="2" Grid.Column="0" Content="System Prompt:" VerticalAlignment="Top" Margin="0,5,0,0"/>
-                    <TextBox Grid.Row="2" Grid.Column="1" x:Name="SummarizePromptTextBox" VerticalAlignment="Stretch" Margin="5" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Height="150"/>
+                    <Label Grid.Row="2" Grid.Column="0" Content="Prompt:" VerticalAlignment="Top" Margin="0,5,0,0"/>
+                    <TextBox Grid.Row="2" Grid.Column="1" x:Name="SummarizePromptTextBox" VerticalAlignment="Stretch" Margin="5" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Height="180"/>
 
                 </Grid>
             </TabItem>
@@ -163,10 +160,11 @@ Use First Channel: picks channel 1 only.">
                 <StackPanel Margin="10">
                     <Image Source="clio_ai_icon.ico" Width="48" Height="48" HorizontalAlignment="Left" Margin="0,0,0,10"/> <!-- Added Icon -->
                     <TextBlock FontWeight="Bold" FontSize="16" Text="ClioAi"/> <!-- Updated Name -->
-                    <TextBlock x:Name="VersionTextBlock" Text="Version: X.Y.Z" Margin="0,5,0,5"/>
+                    <TextBlock x:Name="VersionTextBlock" Text="Version: 1.2" Margin="0,5,0,5"/>
                     <TextBlock Text="Copyright (c) 2025 Moses Ling" Margin="0,0,0,10"/> <!-- Updated -->
 
                     <TextBlock Text="Development Credits:" Margin="0,10,0,5" FontWeight="SemiBold"/>
+                    <TextBlock Text="- Coding Assistant: Codex (OpenAI)" Margin="10,0,0,0"/>
                     <TextBlock Text="- Code Generator: Cline (Anthropic)" Margin="10,0,0,0"/>
                     <TextBlock Text="- LLM: Gemini 2.5 Pro (Google)" Margin="10,0,0,10"/>
 

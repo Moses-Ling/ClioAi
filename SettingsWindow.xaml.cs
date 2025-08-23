@@ -37,6 +37,11 @@ namespace AudioTranscriptionApp
 
             LoadSettings();
             DisplayVersion(); // Display version info
+
+            // Hook selection changed for quick diagnostics
+            SystemAudioDeviceComboBox.SelectionChanged += (s, e) => UpdateDeviceFormatTexts();
+            MicrophoneDeviceComboBox.SelectionChanged += (s, e) => UpdateDeviceFormatTexts();
+            UpdateDeviceFormatTexts();
         }
 
         private void PopulateDeviceLists()
@@ -84,8 +89,8 @@ namespace AudioTranscriptionApp
 
         private void DisplayVersion()
         {
-            // Hardcode version for now as requested
-            VersionTextBlock.Text = "Version: 2.0b";
+            // Official version update
+            VersionTextBlock.Text = "Version: 1.2";
             // The commented out try-catch block was causing the brace issue.
             // Removing the erroneous closing brace and the extra Logger call inside the comment.
             /*
@@ -95,6 +100,32 @@ namespace AudioTranscriptionApp
                  VersionTextBlock.Text = "Version: Unknown";
             }
             */
+        }
+
+        private void UpdateDeviceFormatTexts()
+        {
+            try
+            {
+                var sys = SystemAudioDeviceComboBox.SelectedItem as AudioDeviceModel;
+                if (sys?.Device != null)
+                {
+                    var fmt = sys.Device.AudioClient.MixFormat;
+                    SystemFormatTextBlock.Text = $"{fmt.SampleRate} Hz, {fmt.Channels} ch, {fmt.BitsPerSample} bit";
+                }
+                else SystemFormatTextBlock.Text = string.Empty;
+
+                var mic = MicrophoneDeviceComboBox.SelectedItem as AudioDeviceModel;
+                if (mic?.Device != null)
+                {
+                    var fmt = mic.Device.AudioClient.MixFormat;
+                    MicFormatTextBlock.Text = $"{fmt.SampleRate} Hz, {fmt.Channels} ch, {fmt.BitsPerSample} bit";
+                }
+                else MicFormatTextBlock.Text = string.Empty;
+            }
+            catch (Exception ex)
+            {
+                Logger.Warning($"Failed to update device format texts: {ex.Message}");
+            }
         }
 
 
@@ -127,14 +158,14 @@ namespace AudioTranscriptionApp
             string encryptedCleanupKey = Properties.Settings.Default.CleanupApiKey ?? string.Empty;
             CleanupApiKeyBox.Password = EncryptionHelper.DecryptString(encryptedCleanupKey);
             CleanupApiKeyTextBox.Text = CleanupApiKeyBox.Password; // Sync textbox initially
-            CleanupModelComboBox.SelectedItem = FindComboBoxItem(CleanupModelComboBox, Properties.Settings.Default.CleanupModel);
+            CleanupModelTextBox.Text = Properties.Settings.Default.CleanupModel ?? string.Empty;
             CleanupPromptTextBox.Text = Properties.Settings.Default.CleanupPrompt ?? string.Empty;
 
             // Load Summarize Settings
             string encryptedSummarizeKey = Properties.Settings.Default.SummarizeApiKey ?? string.Empty;
             SummarizeApiKeyBox.Password = EncryptionHelper.DecryptString(encryptedSummarizeKey);
             SummarizeApiKeyTextBox.Text = SummarizeApiKeyBox.Password; // Sync textbox initially
-            SummarizeModelComboBox.SelectedItem = FindComboBoxItem(SummarizeModelComboBox, Properties.Settings.Default.SummarizeModel);
+            SummarizeModelTextBox.Text = Properties.Settings.Default.SummarizeModel ?? string.Empty;
             SummarizePromptTextBox.Text = Properties.Settings.Default.SummarizePrompt ?? string.Empty;
 
             // Load Device Selections
@@ -211,13 +242,13 @@ namespace AudioTranscriptionApp
                 // Save Cleanup Settings (Get key from visible control)
                 string cleanupKey = ShowCleanupApiKeyCheckBox.IsChecked == true ? CleanupApiKeyTextBox.Text : CleanupApiKeyBox.Password;
                 Properties.Settings.Default.CleanupApiKey = EncryptionHelper.EncryptString(cleanupKey);
-                Properties.Settings.Default.CleanupModel = (CleanupModelComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "gpt-4o-mini";
+                Properties.Settings.Default.CleanupModel = CleanupModelTextBox.Text;
                 Properties.Settings.Default.CleanupPrompt = CleanupPromptTextBox.Text;
 
                 // Save Summarize Settings (Get key from visible control)
                 string summarizeKey = ShowSummarizeApiKeyCheckBox.IsChecked == true ? SummarizeApiKeyTextBox.Text : SummarizeApiKeyBox.Password;
                 Properties.Settings.Default.SummarizeApiKey = EncryptionHelper.EncryptString(summarizeKey);
-                Properties.Settings.Default.SummarizeModel = (SummarizeModelComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "gpt-4o"; // Changed default fallback
+                Properties.Settings.Default.SummarizeModel = SummarizeModelTextBox.Text;
                 Properties.Settings.Default.SummarizePrompt = SummarizePromptTextBox.Text;
 
                 // Save Device Selections
@@ -247,6 +278,56 @@ namespace AudioTranscriptionApp
             Logger.Info("Settings window cancelled.");
             this.DialogResult = false;
             this.Close();
+        }
+
+        private async void CleanupListModelsButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                string key = ShowCleanupApiKeyCheckBox.IsChecked == true ? CleanupApiKeyTextBox.Text : CleanupApiKeyBox.Password;
+                if (string.IsNullOrWhiteSpace(key)) { System.Windows.MessageBox.Show("Enter Cleanup API key first.", "Missing Key", MessageBoxButton.OK, MessageBoxImage.Warning); return; }
+                using (var svc = new OpenAiChatService(key))
+                {
+                    var models = await svc.ListModelsAsync();
+                    if (models == null || models.Count == 0)
+                    {
+                        System.Windows.MessageBox.Show("No models returned.", "OpenAI Models", MessageBoxButton.OK, MessageBoxImage.Information);
+                        return;
+                    }
+                    string sample = string.Join("\n", models.Take(30));
+                    System.Windows.MessageBox.Show($"Available models (showing up to 30):\n\n{sample}", "OpenAI Models", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("Failed to list Cleanup models.", ex);
+                System.Windows.MessageBox.Show($"Failed to list models: {ex.Message}", "OpenAI Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private async void SummarizeListModelsButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                string key = ShowSummarizeApiKeyCheckBox.IsChecked == true ? SummarizeApiKeyTextBox.Text : SummarizeApiKeyBox.Password;
+                if (string.IsNullOrWhiteSpace(key)) { System.Windows.MessageBox.Show("Enter Summarize API key first.", "Missing Key", MessageBoxButton.OK, MessageBoxImage.Warning); return; }
+                using (var svc = new OpenAiChatService(key))
+                {
+                    var models = await svc.ListModelsAsync();
+                    if (models == null || models.Count == 0)
+                    {
+                        System.Windows.MessageBox.Show("No models returned.", "OpenAI Models", MessageBoxButton.OK, MessageBoxImage.Information);
+                        return;
+                    }
+                    string sample = string.Join("\n", models.Take(30));
+                    System.Windows.MessageBox.Show($"Available models (showing up to 30):\n\n{sample}", "OpenAI Models", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("Failed to list Summarize models.", ex);
+                System.Windows.MessageBox.Show($"Failed to list models: {ex.Message}", "OpenAI Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private void BrowseButton_Click(object sender, RoutedEventArgs e)
