@@ -1,0 +1,183 @@
+<Window x:Class="AudioTranscriptionApp.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:AudioTranscriptionApp"
+        mc:Ignorable="d"
+        Title="Settings"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize" ShowInTaskbar="False" Height="400" Width="550"> <!-- Corrected Height/Width -->
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/> <!-- TabControl takes available space -->
+            <RowDefinition Height="Auto"/> <!-- Buttons -->
+        </Grid.RowDefinitions>
+
+        <TabControl Grid.Row="0">
+            <!-- General Settings Tab -->
+            <TabItem Header="General">
+                <Grid Margin="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/> <!-- Whisper Key -->
+                        <RowDefinition Height="Auto"/> <!-- System Audio Device -->
+                        <RowDefinition Height="Auto"/> <!-- Microphone Device -->
+                        <RowDefinition Height="Auto"/> <!-- Chunk Duration -->
+                        <RowDefinition Height="Auto"/> <!-- Save Path -->
+                        <RowDefinition Height="*"/> <!-- Spacer -->
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Whisper API Key -->
+                    <Label Grid.Row="0" Grid.Column="0" Content="Whisper API Key:" VerticalAlignment="Center"/>
+                    <Grid Grid.Row="0" Grid.Column="1" Margin="5">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <PasswordBox x:Name="ApiKeyBox" VerticalAlignment="Center" />
+                        <TextBox x:Name="ApiKeyTextBox" VerticalAlignment="Center" Visibility="Collapsed"/>
+                        <CheckBox Grid.Column="1" x:Name="ShowApiKeyCheckBox" Content="Show" VerticalAlignment="Center" Margin="5,0,0,0" Checked="ShowApiKeyCheckBox_Checked" Unchecked="ShowApiKeyCheckBox_Unchecked"/>
+                    </Grid>
+
+                    <!-- System Audio Device -->
+                    <Label Grid.Row="1" Grid.Column="0" Content="System Audio Source:" VerticalAlignment="Center"/>
+                    <ComboBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" x:Name="SystemAudioDeviceComboBox" VerticalAlignment="Center" Margin="5"
+                              ItemsSource="{Binding SystemAudioDevices}" DisplayMemberPath="DisplayName" SelectedValuePath="Id"/>
+
+                    <!-- Microphone Device -->
+                    <Label Grid.Row="2" Grid.Column="0" Content="Microphone Source:" VerticalAlignment="Center"/>
+                    <ComboBox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" x:Name="MicrophoneDeviceComboBox" VerticalAlignment="Center" Margin="5"
+                              ItemsSource="{Binding MicrophoneDevices}" DisplayMemberPath="DisplayName" SelectedValuePath="Id"/>
+
+                    <!-- Chunk Duration -->
+                    <Label Grid.Row="3" Grid.Column="0" Content="Chunk Duration (sec):" VerticalAlignment="Center"/>
+                    <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="5">
+                        <Slider x:Name="ChunkDurationSlider" Minimum="5" Maximum="25" Width="150" ValueChanged="ChunkDurationSlider_ValueChanged" TickFrequency="5" IsSnapToTickEnabled="True"/>
+                        <TextBox x:Name="ChunkDurationTextBox" Width="40" Margin="10,0,0,0" Text="{Binding Value, ElementName=ChunkDurationSlider, StringFormat={}{0:N0}}" IsReadOnly="True"/>
+                    </StackPanel>
+
+                    <!-- Default Save Path -->
+                    <Label Grid.Row="4" Grid.Column="0" Content="Default Save Path:" VerticalAlignment="Center"/>
+                    <TextBox Grid.Row="4" Grid.Column="1" x:Name="SavePathTextBox" VerticalAlignment="Center" Margin="5"/>
+                    <Button Grid.Row="4" Grid.Column="2" x:Name="BrowseButton" Content="..." Width="30" Margin="5" Click="BrowseButton_Click"/>
+                </Grid>
+            </TabItem>
+
+            <!-- Clean Up Settings Tab -->
+            <TabItem Header="Clean Up">
+                <Grid Margin="10">
+                     <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Cleanup API Key -->
+                    <Label Grid.Row="0" Grid.Column="0" Content="OpenAI API Key (Cleanup):" VerticalAlignment="Center"/>
+                     <Grid Grid.Row="0" Grid.Column="1" Margin="5">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <PasswordBox x:Name="CleanupApiKeyBox" VerticalAlignment="Center" />
+                        <TextBox x:Name="CleanupApiKeyTextBox" VerticalAlignment="Center" Visibility="Collapsed"/>
+                        <CheckBox Grid.Column="1" x:Name="ShowCleanupApiKeyCheckBox" Content="Show" VerticalAlignment="Center" Margin="5,0,0,0" Checked="ShowCleanupApiKeyCheckBox_Checked" Unchecked="ShowCleanupApiKeyCheckBox_Unchecked"/>
+                    </Grid>
+
+                    <!-- Cleanup Model -->
+                    <Label Grid.Row="1" Grid.Column="0" Content="Cleanup Model:" VerticalAlignment="Center"/>
+                    <ComboBox Grid.Row="1" Grid.Column="1" x:Name="CleanupModelComboBox" VerticalAlignment="Center" Margin="5">
+                        <ComboBoxItem Content="gpt-4o"/>
+                        <ComboBoxItem Content="gpt-4o-mini"/>
+                        <ComboBoxItem Content="gpt-4-turbo"/>
+                    </ComboBox>
+
+                    <!-- Cleanup Prompt -->
+                    <Label Grid.Row="2" Grid.Column="0" Content="System Prompt:" VerticalAlignment="Top" Margin="0,5,0,0"/>
+                    <TextBox Grid.Row="2" Grid.Column="1" x:Name="CleanupPromptTextBox" VerticalAlignment="Stretch" Margin="5" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Height="150"/> <!-- Added Height -->
+
+                </Grid>
+            </TabItem>
+
+             <!-- Summarize Settings Tab -->
+            <TabItem Header="Summarize">
+                <Grid Margin="10">
+                     <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Summarize API Key -->
+                    <Label Grid.Row="0" Grid.Column="0" Content="OpenAI API Key (Summarize):" VerticalAlignment="Center"/>
+                     <Grid Grid.Row="0" Grid.Column="1" Margin="5">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <PasswordBox x:Name="SummarizeApiKeyBox" VerticalAlignment="Center" />
+                        <TextBox x:Name="SummarizeApiKeyTextBox" VerticalAlignment="Center" Visibility="Collapsed"/>
+                        <CheckBox Grid.Column="1" x:Name="ShowSummarizeApiKeyCheckBox" Content="Show" VerticalAlignment="Center" Margin="5,0,0,0" Checked="ShowSummarizeApiKeyCheckBox_Checked" Unchecked="ShowSummarizeApiKeyCheckBox_Unchecked"/>
+                    </Grid>
+
+                    <!-- Summarize Model -->
+                    <Label Grid.Row="1" Grid.Column="0" Content="Summarize Model:" VerticalAlignment="Center"/>
+                    <ComboBox Grid.Row="1" Grid.Column="1" x:Name="SummarizeModelComboBox" VerticalAlignment="Center" Margin="5">
+                        <ComboBoxItem Content="gpt-4o"/>
+                        <ComboBoxItem Content="gpt-4o-mini"/>
+                        <ComboBoxItem Content="gpt-4-turbo"/>
+                    </ComboBox>
+
+                    <!-- Summarize Prompt -->
+                    <Label Grid.Row="2" Grid.Column="0" Content="System Prompt:" VerticalAlignment="Top" Margin="0,5,0,0"/>
+                    <TextBox Grid.Row="2" Grid.Column="1" x:Name="SummarizePromptTextBox" VerticalAlignment="Stretch" Margin="5" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Height="150"/>
+
+                </Grid>
+            </TabItem>
+
+            <!-- About Tab -->
+            <TabItem Header="About">
+                <StackPanel Margin="10">
+                    <Image Source="clio_ai_icon.ico" Width="48" Height="48" HorizontalAlignment="Left" Margin="0,0,0,10"/> <!-- Added Icon -->
+                    <TextBlock FontWeight="Bold" FontSize="16" Text="ClioAi"/> <!-- Updated Name -->
+                    <TextBlock x:Name="VersionTextBlock" Text="Version: X.Y.Z" Margin="0,5,0,5"/>
+                    <TextBlock Text="Copyright (c) 2025 Moses Ling" Margin="0,0,0,10"/> <!-- Updated -->
+
+                    <TextBlock Text="Development Credits:" Margin="0,10,0,5" FontWeight="SemiBold"/>
+                    <TextBlock Text="- Code Generator: Cline (Anthropic)" Margin="10,0,0,0"/>
+                    <TextBlock Text="- LLM: Gemini 2.5 Pro (Google)" Margin="10,0,0,10"/>
+
+                    <TextBlock Text="This application uses the following open-source libraries:" Margin="0,10,0,5" FontWeight="SemiBold"/>
+                    <TextBlock Text="- NAudio (Ms-PL License)" Margin="10,0,0,0"/>
+                    <TextBlock Text="- Newtonsoft.Json (MIT License)" Margin="10,0,0,0"/>
+                    <TextBlock Text="- Markdig (BSD 2-Clause License)" Margin="10,0,0,10"/>
+
+                    <TextBlock Text="This software is licensed under the MIT License." Margin="0,10,0,5"/>
+                    <Button x:Name="ViewLicenseButton" Content="View Full License Text" HorizontalAlignment="Left" Click="ViewLicenseButton_Click"/>
+
+                </StackPanel>
+            </TabItem>
+
+        </TabControl>
+
+        <!-- Buttons -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
+            <Button x:Name="SaveButton" Content="Save" Width="80" Margin="5" Click="SaveButton_Click" IsDefault="True"/>
+            <Button x:Name="CancelButton" Content="Cancel" Width="80" Margin="5" Click="CancelButton_Click" IsCancel="True"/>
+        </StackPanel>
+
+    </Grid>
+</Window>

@@ -1,0 +1,141 @@
+public void StartRecording()
+{
+    Logger.Info("Attempting to start recording.");
+    if (_isRecording)
+    {
+        Logger.Warning("StartRecording called while already recording.");
+        return;
+    }
+    if (_systemAudioCapture == null || _microphoneCapture == null || _mixer == null)
+    {
+         Logger.Error("Cannot start recording: Devices or mixer not initialized. Please check settings.");
+         StatusChanged?.Invoke(this, "Error: Select valid devices in Settings.");
+         InitializeDevicesAndMixer(); // Attempt re-initialization
+         if (_systemAudioCapture == null || _microphoneCapture == null || _mixer == null)
+         {
+              ErrorOccurred?.Invoke(this, new InvalidOperationException("Audio devices or mixer failed to initialize."));
+              return;
+         }
+    }
+
+    _isRecording = true;
+    // Ensure initialization succeeded before starting
+    if (_systemAudioCapture == null || _microphoneCapture == null || _mixer == null)
+    {
+         Logger.Error("StartRecording called but initialization failed previously. Check logs.");
+         StatusChanged?.Invoke(this, "Error: Initialization failed. Check Settings/Logs.");
+         _isRecording = false; // Reset flag if init check fails here
+         return;
+    }
+
+    // Reload chunk duration from settings right before starting
+    _audioChunkSeconds = Properties.Settings.Default.ChunkDurationSeconds;
+    if (_audioChunkSeconds < 5) _audioChunkSeconds = 5;
+    if (_audioChunkSeconds > 25) _audioChunkSeconds = 25; // Ensure it respects the new max
+    Logger.Info($"Using audio chunk duration for this session: {_audioChunkSeconds} seconds.");
+
+    CreateNewAudioFile(); // Creates the initial temp file and starts write loop
+    if (_writer == null) // Check if file creation failed
+    {
+         Logger.Error("StartRecording failed because CreateNewAudioFile failed.");
+         _isRecording = false; // Ensure flag is reset
+         return;
+    }
+
+    try
+    {
+        // Clear buffers
+        _systemAudioBuffer?.ClearBuffer();
+        _microphoneBuffer?.ClearBuffer();
+
+        // Reset mute states
+        _isSystemAudioMuted = false;
+        _isMicrophoneMuted = false;
+
+        // Reset levels - Phase 3
+        _systemAudioLevel = 0;
+        _micAudioLevel = 0;
+        SystemAudioLevelChanged?.Invoke(this, 0);
+        MicrophoneLevelChanged?.Invoke(this, 0);
+
+        // Start timer and recording session
+        _sessionStartTime = DateTime.Now;
+        _chunkStartTime = _sessionStartTime;
+        RecordedDuration = TimeSpan.Zero;
+        
+        // Start timer updates immediately
+        RecordingTimeUpdate?.Invoke(this, RecordedDuration);
+
+        Logger.Info("Starting System Audio Capture...");
+        _systemAudioCapture.StartRecording();
+        Logger.Info("Starting Microphone Capture...");
+        _microphoneCapture.StartRecording();
+
+        StatusChanged?.Invoke(this, "Recording (System + Mic)...");
+        Logger.Info("Recording started successfully for both sources.");
+    }
+    catch (Exception ex)
+    {
+        Logger.Error("Failed to start recording.", ex);
+        StatusChanged?.Invoke(this, $"Error starting recording: {ex.Message}");
+        ErrorOccurred?.Invoke(this, ex);
+        _isRecording = false;
+        DisposeCurrentCapturesAndMixer();
+    }
+}
+
+// V2: Background task to read from mixer and write to file
+private void ReadAndWriteLoop()
+{
+     // Check essential components before starting loop
+     if (_mixer == null || _systemAudioBuffer == null || _microphoneBuffer == null)
+     {
+          Logger.Error("ReadAndWriteLoop cannot start: Mixer or buffers are null.");
+          _isRecording = false; // Stop recording if setup is invalid
+          ErrorOccurred?.Invoke(this, new InvalidOperationException("Mixer or buffers not initialized for write loop."));
+          return;
+     }
+     int bufferMilliseconds = 100;
+     int requiredBytes = _mixer.WaveFormat.ConvertLatencyToByteSize(bufferMilliseconds);
+     Logger.Info($"Starting ReadAndWriteLoop. Buffer size: {requiredBytes} bytes for {bufferMilliseconds}ms.");
+
+     int updateCounter = 0;
+     while (_isRecording) // Loop continues as long as recording is intended
+     {
+         try
+         {
+              // Check the flag using integer comparison
+              if (Volatile.Read(ref _processingChunkFlag) == 1)
+              {
+                   Task.Delay(10).Wait(); // Short pause while chunk is processed
+                   continue; // Skip writing this iteration
+              }
+
+              if (_systemAudioBuffer?.BufferedBytes > 0 || _microphoneBuffer?.BufferedBytes > 0)
+              {
+                   WriteMixerOutputToFile(requiredBytes);
+              }
+              else
+              {
+                   Task.Delay(20).Wait(); // Prevent busy-waiting
+              }
+
+              // Update timer more frequently - every 5 iterations (approximately every 100ms)
+              updateCounter++;
+              if (updateCounter >= 5)
+              {
+                  updateCounter = 0;
+                  TimeSpan totalElapsed = DateTime.Now - _sessionStartTime;
+                  RecordedDuration = totalElapsed;
+                  RecordingTimeUpdate?.Invoke(this, totalElapsed);
+              }
+         }
+         catch (Exception ex)
+         {
+              Logger.Error("Error in ReadAndWriteLoop", ex);
+              ErrorOccurred?.Invoke(this, ex);
+              break; // Exit loop on error
+         }
+     }
+     Logger.Info("Exited ReadAndWriteLoop.");
+}

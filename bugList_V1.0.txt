@@ -1,0 +1,2 @@
+1. After stop button push, get a pop up message about Transcription been cancel  
+2. After stop the start button need to be disable to prevent accident start again. If not a pop up ask for yes/no will help

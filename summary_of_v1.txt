@@ -1,0 +1,26 @@
+**Project:** ClioAi (formerly AudioTranscriptionApp)
+**Location:** D:/VS/source/repos/AudioTranscriptionApp
+**Current Status:** Version 1.0.0 development is complete and tagged (`v1.0.0`). A new branch `v2-dev` has been created from the `v1.0.0` tag to begin work on the next version. The current working branch is `v2-dev`.
+
+**Summary of v1.0.0 Features:**
+*   **Core Functionality:** Captures system audio output, transcribes using OpenAI Whisper, cleans transcription using OpenAI Chat API, summarizes text using OpenAI Chat API.
+*   **Configuration:** Settings window (`SettingsWindow.xaml`/`.cs`) allows configuration of API keys (Whisper, Cleanup, Summarize - all encrypted), audio chunk duration, and default save path. Includes API key visibility toggle.
+*   **File Management:** Automatically saves raw transcription (`transcription.txt`), cleaned text (`cleaned.txt`), and summary (`summary.md`) to timestamped subdirectories within the configured save path.
+*   **UI (`MainWindow.xaml`/`.cs`):**
+    *   Displays transcription/summary text.
+    *   Shows audio level meter.
+    *   Provides Start/Stop/Clear/Settings buttons.
+    *   Includes "Clean Up" and "Summarize" buttons, enabled when appropriate.
+    *   Displays elapsed recording time and total time upon stopping.
+    *   Shows an indeterminate progress bar during API calls (red during recording, default otherwise).
+    *   Includes an "About" tab in Settings with version info, credits (Moses Ling, Cline, Gemini), library acknowledgements (NAudio, Newtonsoft.Json, Markdig), and license info (MIT).
+    *   Uses the `clio_ai_icon.ico` for the application and window.
+*   **Key Services:**
+    *   `AudioCaptureService.cs`: Handles WASAPI loopback capture, chunking based on settings, audio level monitoring, and raises events for data, status, errors, and time updates.
+    *   `TranscriptionService.cs`: Handles interaction with the Whisper API, including retries.
+    *   `OpenAiChatService.cs`: Handles interaction with the OpenAI Chat Completions API for both cleanup and summarization, including retries.
+    *   `Logger.cs`: Provides simple file logging.
+    *   `EncryptionHelper.cs`: Handles API key encryption/decryption using DPAPI.
+
+**Next Task Objective (Intended for New Task):**
+Begin development on Version 2.0 features within the `v2-dev` branch of the `D:/VS/source/repos/AudioTranscriptionApp` repository. Define and implement the first set of v2.0 requirements.

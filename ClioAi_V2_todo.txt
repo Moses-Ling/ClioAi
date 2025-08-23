@@ -1,0 +1,105 @@
+ClioAi v2.0 To-Do List: Simultaneous Mic/System Recording with Mute & Separate Meters
+
+**Phase 1: Settings & Device Selection Foundation**
+
+*   **Goal:** Modify the settings to allow selecting separate microphone and system audio devices, store these selections, and update the service to list devices correctly categorized.
+*   **To-Do:**
+    1.  **`AudioDeviceModel.cs`:** Add `public bool IsInput { get; set; }` property.
+    2.  **`AudioCaptureService.cs` (`GetAudioDevices`):**
+        *   Enumerate both `DataFlow.Render` (System) and `DataFlow.Capture` (Mic) devices.
+        *   Set the `IsInput` flag accordingly for each `AudioDeviceModel`.
+        *   Prepend `[Mic] ` or `[System] ` to the `DisplayName` for UI clarity.
+    3.  **`SettingsWindow.xaml`:**
+        *   Replace the single `AudioDevicesComboBox` with two: `SystemAudioDeviceComboBox` and `MicrophoneDeviceComboBox`. Add appropriate labels.
+    4.  **`SettingsWindow.xaml.cs`:**
+        *   Add two `ObservableCollection<AudioDeviceModel>` properties (e.g., `SystemAudioDevices`, `MicrophoneDevices`) to bind to the new ComboBoxes.
+        *   Modify the constructor/loading logic:
+            *   Call `_audioCaptureService.GetAudioDevices()`.
+            *   Filter the results into the two separate collections based on the `IsInput` flag.
+            *   Populate the ComboBoxes.
+        *   Modify `LoadSettings`: Load the saved `SystemAudioDeviceId` and `MicrophoneDeviceId` from `Properties.Settings.Default` and set the `SelectedItem` for each ComboBox.
+        *   Modify `SaveSettings`: Save the `SelectedValue` (which should be the device ID) from both ComboBoxes into `Properties.Settings.Default.SystemAudioDeviceId` and `Properties.Settings.Default.MicrophoneDeviceId`. (Need to add these properties to `Settings.settings`).
+    5.  **`Properties/Settings.settings`:** Add `SystemAudioDeviceId` (string) and `MicrophoneDeviceId` (string) settings.
+    6.  **`MainWindow.xaml.cs`:**
+        *   Modify the `SettingsButton_Click` handler: After the settings window closes (`result == true`), retrieve the newly saved device IDs from `Properties.Settings.Default`. (We won't *use* them to initialize the service yet, just ensure they are saved/retrieved).
+*   **Testing & Verification:**
+    1.  Run the application.
+    2.  Open the Settings window.
+    3.  Verify that two ComboBoxes are present.
+    4.  Verify that the "System Audio" ComboBox lists only output devices (prefixed with `[System]`).
+    5.  Verify that the "Microphone" ComboBox lists only input devices (prefixed with `[Mic]`).
+    6.  Select a device in each ComboBox, click Save.
+    7.  Close and reopen the Settings window. Verify the previously selected devices are still selected.
+    8.  Check `Properties.Settings.Default` (e.g., via debugger or by examining the user settings file) to confirm the correct device IDs were saved.
+
+**Phase 2: Dual Audio Capture & Mixing Service Logic**
+
+*   **Goal:** Implement the core service logic to capture audio from two sources simultaneously and mix them into a single stream written to the file.
+*   **To-Do (`AudioCaptureService.cs`):**
+    1.  **Member Variables:** Add member variables for the second capture instance (e.g., `_micCapture` of type `WasapiCapture`), the mixer (`MixingSampleProvider`), and potentially buffer/sample providers for each input. Store the selected device IDs (`_selectedSystemDeviceId`, `_selectedMicDeviceId`).
+    2.  **Initialization:**
+        *   Create methods like `SetSystemAudioDevice(string deviceId)` and `SetMicrophoneDevice(string deviceId)` to store the selected IDs.
+        *   Refactor `InitializeAudioCapture` (or create a new `InitializeMixer`) to:
+            *   Instantiate `WasapiLoopbackCapture` using `_selectedSystemDeviceId`.
+            *   Instantiate `WasapiCapture` using `_selectedMicDeviceId`.
+            *   Create `BufferedWaveProvider` and `SampleChannel` (or similar `ISampleProvider` conversion) for each capture instance. Ensure they have compatible wave formats for mixing.
+            *   Instantiate `MixingSampleProvider` with the correct output format.
+            *   Add the sample providers for mic and system audio as inputs to the `MixingSampleProvider`.
+    3.  **Data Handling:**
+        *   Modify `Capture_DataAvailable` (or create separate handlers for each capture instance): When data arrives, add it to the corresponding `BufferedWaveProvider`.
+    4.  **Writing:** Modify `CreateNewAudioFile`: The `WaveFileWriter` (`_writer`) should now read data from the `MixingSampleProvider` instead of the raw capture instance. The format should match the mixer's output format.
+    5.  **Start/Stop:** Modify `StartRecording` to start *both* `_capture` and `_micCapture`. Modify `StopRecording` to stop *both*.
+    6.  **Dispose:** Ensure both capture instances and the mixer resources are disposed correctly.
+*   **Testing & Verification:**
+    1.  (Requires Phase 1 completion) Set valid Mic and System devices in Settings.
+    2.  Start recording. Use a debugger to:
+        *   Verify both `_capture.StartRecording()` and `_micCapture.StartRecording()` are called.
+        *   Verify data is being received in the `DataAvailable` handlers for both instances.
+        *   Verify data is being written to the `WaveFileWriter` from the `MixingSampleProvider`.
+    3.  Stop recording.
+    4.  Locate the generated `.wav` file.
+    5.  Play the `.wav` file using an audio player. Verify that it contains *both* the system audio and the microphone input recorded during the session. (Quality/levels might be off, but both should be present).
+    6.  Verify `StopRecording` stops both capture instances.
+
+**Phase 3: UI Updates (Meters & Mute Controls)**
+
+*   **Goal:** Update the main window UI with separate level meters and mute controls, connecting them to the service.
+*   **To-Do:**
+    1.  **`AudioCaptureService.cs`:**
+        *   Implement Muting Logic: Add flags (`_isMicMuted`, `_isSystemAudioMuted`) and methods (`ToggleMicMute`, `ToggleSystemAudioMute`). Modify `DataAvailable` handlers to check flags before adding data to buffers/mixer inputs.
+        *   Implement Separate Level Calculation: Calculate levels individually within each `DataAvailable` handler *before* the mute check.
+        *   Add Events: Define `MicrophoneLevelChanged` and `SystemAudioLevelChanged` events. Raise them from the respective `DataAvailable` handlers. Remove the old `AudioLevelChanged` event.
+    2.  **`MainWindow.xaml`:**
+        *   Replace single `AudioLevelBar` with `MicLevelBar` (Foreground="Red") and `SystemLevelBar`.
+        *   Add `MuteMicCheckBox` and `MuteSystemAudioCheckBox`.
+    3.  **`MainWindow.xaml.cs`:**
+        *   Subscribe to `MicrophoneLevelChanged` and `SystemAudioLevelChanged` events; update the corresponding progress bars in the handlers.
+        *   Add `Checked`/`Unchecked` event handlers for the mute checkboxes; call the `ToggleMicMute`/`ToggleSystemAudioMute` methods in the service.
+        *   Remove references to the old `AudioLevelChanged` event/bar.
+*   **Testing & Verification:**
+    1.  Run the application.
+    2.  Start recording.
+    3.  Verify two level meters are displayed (Mic=Red, System=Blue/Default).
+    4.  Verify the Mic meter responds to microphone input.
+    5.  Verify the System meter responds to system audio output.
+    6.  Check the "Mute Mic" checkbox. Verify the Mic level meter drops to zero and microphone audio is *not* present in the subsequent recording file chunk. Verify system audio is still recorded.
+    7.  Uncheck "Mute Mic". Verify mic audio returns to the recording.
+    8.  Repeat steps 6 & 7 for the "Mute System Audio" checkbox and system audio.
+    9.  Verify both can be muted simultaneously.
+
+**Phase 4: Integration & Final Testing**
+
+*   **Goal:** Ensure all features work together seamlessly, including transcription of the mixed audio.
+*   **To-Do:**
+    1.  Review all changes for consistency and potential issues.
+    2.  Perform end-to-end testing scenarios.
+*   **Testing & Verification:**
+    1.  Configure API keys and select valid Mic/System devices in Settings.
+    2.  Start recording with both sources unmuted. Play system audio and speak into the microphone.
+    3.  Observe level meters.
+    4.  Use mute controls during recording.
+    5.  Stop recording.
+    6.  Verify the transcription text box contains the transcribed audio from *both* sources (when unmuted).
+    7.  Verify the automatically saved `transcription.txt` file contains the correct mixed transcription.
+    8.  Use the "Clean Up" and "Summarize" features on the mixed transcription. Verify they work as expected and save `cleaned.txt` and `summary.md`.
+    9.  Test edge cases: No devices selected, invalid devices, starting/stopping rapidly, etc.
