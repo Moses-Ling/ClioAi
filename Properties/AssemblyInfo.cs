@@ -2,6 +2,7 @@
 using System.Resources;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
 using System.Windows;
 
 // General Information about an assembly is controlled through the following
@@ -50,3 +51,6 @@ using System.Windows;
 //
 [assembly: AssemblyVersion("1.0.0.0")]
 [assembly: AssemblyFileVersion("1.0.0.0")]
+
+// Allow tests to access internal types
+[assembly: InternalsVisibleTo("AudioTranscriptionApp.Tests")]

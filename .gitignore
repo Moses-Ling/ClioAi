@@ -20,6 +20,8 @@ app.log
 *.log
 # MSBuild fileLogger artifacts
 *log,Verbosity
+# temp files
+temp_*.txt
 
 # Other
 Thumbs.db
