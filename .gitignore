@@ -1,0 +1,27 @@
+# Build artifacts
+bin/
+obj/
+tests/bin/
+tests/obj/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.userprefs
+
+# Packages (NuGet)
+packages/
+!packages/build/
+
+# Logs
+app.log
+*.log
+
+# Other
+Thumbs.db
+Desktop.ini
+*.cache
+*.tmp
+~$*

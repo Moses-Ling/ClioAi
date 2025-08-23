@@ -13,6 +13,64 @@ namespace AudioTranscriptionApp.Services
 {
     public class AudioCaptureService : IDisposable
     {
+        private ISampleProvider EnsureMono(ISampleProvider source, string sourceName)
+        {
+            if (source.WaveFormat.Channels == 1) return source;
+            if (source.WaveFormat.Channels == 2)
+            {
+                Logger.Warning($"Downmixing {sourceName} from stereo to mono");
+                return new StereoToMonoSampleProvider(source);
+            }
+
+            Logger.Warning($"Downmixing {sourceName} with {source.WaveFormat.Channels} channels to mono by averaging");
+            return new DownmixToMonoSampleProvider(source);
+        }
+
+        private ISampleProvider EnsureSampleRate(ISampleProvider source, int targetSampleRate, string sourceName)
+        {
+            if (source.WaveFormat.SampleRate == targetSampleRate) return source;
+            Logger.Warning($"Resampling {sourceName} from {source.WaveFormat.SampleRate}Hz to {targetSampleRate}Hz");
+            return new WdlResamplingSampleProvider(source, targetSampleRate);
+        }
+
+        // Simple downmixer that averages all channels to mono (float)
+        private sealed class DownmixToMonoSampleProvider : ISampleProvider
+        {
+            private readonly ISampleProvider _source;
+            private readonly WaveFormat _waveFormat;
+            private float[] _buffer;
+
+            public DownmixToMonoSampleProvider(ISampleProvider source)
+            {
+                _source = source;
+                _waveFormat = WaveFormat.CreateIeeeFloatWaveFormat(source.WaveFormat.SampleRate, 1);
+            }
+
+            public WaveFormat WaveFormat => _waveFormat;
+
+            public int Read(float[] buffer, int offset, int count)
+            {
+                int channels = _source.WaveFormat.Channels;
+                int framesRequested = count; // since output is mono, frames == samples
+                if (_buffer == null) _buffer = new float[framesRequested * channels];
+
+                int sourceSamplesNeeded = framesRequested * channels;
+                if (_buffer.Length < sourceSamplesNeeded) _buffer = new float[sourceSamplesNeeded];
+
+                int samplesRead = _source.Read(_buffer, 0, sourceSamplesNeeded);
+                int framesRead = samplesRead / channels;
+
+                for (int n = 0; n < framesRead; n++)
+                {
+                    float sum = 0f;
+                    int baseIdx = n * channels;
+                    for (int c = 0; c < channels; c++) sum += _buffer[baseIdx + c];
+                    buffer[offset + n] = sum / channels;
+                }
+
+                return framesRead; // mono samples written equals framesRead
+            }
+        }
         // V1 Capture (System Audio) - Renamed for clarity
         private WasapiLoopbackCapture _systemAudioCapture;
         // V2 Capture (Microphone)
@@ -208,33 +266,37 @@ namespace AudioTranscriptionApp.Services
                 _microphoneCapture.RecordingStopped += Capture_RecordingStopped;
 
                 // --- Setup Mixer ---
-                var mixerFormat = WaveFormat.CreateIeeeFloatWaveFormat(48000, 2); // Target format
+                var mixerFormat = WaveFormat.CreateIeeeFloatWaveFormat(48000, 2); // Target format (48kHz, stereo, float)
                 Logger.Info($"Mixer Target Format: {mixerFormat}");
 
                 _mixer = new MixingSampleProvider(mixerFormat);
                 _mixer.ReadFully = true;
 
-                // Setup System Audio Input Chain for Mixer
+                // Prepare System Audio chain -> mono -> resample
                 _systemAudioBuffer = new BufferedWaveProvider(_systemAudioCapture.WaveFormat);
-                _systemAudioSampler = _systemAudioBuffer.ToSampleProvider();
-                if (!WaveFormatComparer.AreEqual(_systemAudioSampler.WaveFormat, mixerFormat))
-                {
-                    Logger.Warning($"Resampling System Audio from {_systemAudioSampler.WaveFormat} to {mixerFormat}");
-                    _systemAudioSampler = new WdlResamplingSampleProvider(_systemAudioSampler, mixerFormat.SampleRate);
-                }
-                _mixer.AddMixerInput(_systemAudioSampler);
-                Logger.Info("Added System Audio input to mixer.");
+                var sysSource = _systemAudioBuffer.ToSampleProvider();
+                Logger.Info($"System source format: {sysSource.WaveFormat.SampleRate}Hz, {sysSource.WaveFormat.Channels}ch");
+                var sysMono = EnsureMono(sysSource, sourceName: "System Audio");
+                Logger.Info($"System mono format: {sysMono.WaveFormat.SampleRate}Hz, {sysMono.WaveFormat.Channels}ch");
+                var sysResampled = EnsureSampleRate(sysMono, mixerFormat.SampleRate, sourceName: "System Audio");
+                Logger.Info($"System resampled format: {sysResampled.WaveFormat.SampleRate}Hz, {sysResampled.WaveFormat.Channels}ch");
 
-                // Setup Microphone Input Chain for Mixer
+                // Prepare Microphone chain -> mono -> resample
                 _microphoneBuffer = new BufferedWaveProvider(_microphoneCapture.WaveFormat);
-                _microphoneSampler = _microphoneBuffer.ToSampleProvider();
-                 if (!WaveFormatComparer.AreEqual(_microphoneSampler.WaveFormat, mixerFormat))
-                 {
-                     Logger.Warning($"Resampling Microphone Audio from {_microphoneSampler.WaveFormat} to {mixerFormat}");
-                     _microphoneSampler = new WdlResamplingSampleProvider(_microphoneSampler, mixerFormat.SampleRate);
-                 }
-                _mixer.AddMixerInput(_microphoneSampler);
-                Logger.Info("Added Microphone input to mixer.");
+                var micSource = _microphoneBuffer.ToSampleProvider();
+                Logger.Info($"Mic source format: {micSource.WaveFormat.SampleRate}Hz, {micSource.WaveFormat.Channels}ch");
+                var micMono = EnsureMono(micSource, sourceName: "Microphone");
+                Logger.Info($"Mic mono format: {micMono.WaveFormat.SampleRate}Hz, {micMono.WaveFormat.Channels}ch");
+                var micResampled = EnsureSampleRate(micMono, mixerFormat.SampleRate, sourceName: "Microphone");
+                Logger.Info($"Mic resampled format: {micResampled.WaveFormat.SampleRate}Hz, {micResampled.WaveFormat.Channels}ch");
+
+                // Route mono inputs to stereo L/R using MultiplexingSampleProvider
+                var mux = new MultiplexingSampleProvider(new[] { micResampled, sysResampled }, 2);
+                mux.ConnectInputToOutput(0, 0); // Mic -> Left
+                mux.ConnectInputToOutput(1, 1); // System -> Right
+
+                _mixer.AddMixerInput(mux);
+                Logger.Info("Added multiplexed inputs to mixer (Mic->L, System->R).");
 
                 StatusChanged?.Invoke(this, $"Ready. System: {systemDevice.FriendlyName}, Mic: {micDevice.FriendlyName}");
                 Logger.Info("Devices and mixer initialized successfully.");
