@@ -165,5 +165,17 @@ Editor Notes – A list of sentences or phrases that were unclear or required as
                 this["MicrophoneDeviceId"] = value;
             }
         }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("Average")]
+        public string DownmixMode {
+            get {
+                return ((string)(this["DownmixMode"]));
+            }
+            set {
+                this["DownmixMode"] = value;
+            }
+        }
     }
 }

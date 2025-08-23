@@ -23,6 +23,7 @@
                         <RowDefinition Height="Auto"/> <!-- System Audio Device -->
                         <RowDefinition Height="Auto"/> <!-- Microphone Device -->
                         <RowDefinition Height="Auto"/> <!-- Chunk Duration -->
+                        <RowDefinition Height="Auto"/> <!-- Downmix Mode -->
                         <RowDefinition Height="Auto"/> <!-- Save Path -->
                         <RowDefinition Height="*"/> <!-- Spacer -->
                     </Grid.RowDefinitions>
@@ -61,10 +62,17 @@
                         <TextBox x:Name="ChunkDurationTextBox" Width="40" Margin="10,0,0,0" Text="{Binding Value, ElementName=ChunkDurationSlider, StringFormat={}{0:N0}}" IsReadOnly="True"/>
                     </StackPanel>
 
+                    <!-- Downmix Mode -->
+                    <Label Grid.Row="4" Grid.Column="0" Content="Downmix Mode:" VerticalAlignment="Center"/>
+                    <ComboBox Grid.Row="4" Grid.Column="1" x:Name="DownmixModeComboBox" VerticalAlignment="Center" Margin="5" SelectedIndex="0">
+                        <ComboBoxItem Content="Average All Channels" Tag="Average"/>
+                        <ComboBoxItem Content="Use First Channel" Tag="FirstChannel"/>
+                    </ComboBox>
+
                     <!-- Default Save Path -->
-                    <Label Grid.Row="4" Grid.Column="0" Content="Default Save Path:" VerticalAlignment="Center"/>
-                    <TextBox Grid.Row="4" Grid.Column="1" x:Name="SavePathTextBox" VerticalAlignment="Center" Margin="5"/>
-                    <Button Grid.Row="4" Grid.Column="2" x:Name="BrowseButton" Content="..." Width="30" Margin="5" Click="BrowseButton_Click"/>
+                    <Label Grid.Row="5" Grid.Column="0" Content="Default Save Path:" VerticalAlignment="Center"/>
+                    <TextBox Grid.Row="5" Grid.Column="1" x:Name="SavePathTextBox" VerticalAlignment="Center" Margin="5"/>
+                    <Button Grid.Row="5" Grid.Column="2" x:Name="BrowseButton" Content="..." Width="30" Margin="5" Click="BrowseButton_Click"/>
                 </Grid>
             </TabItem>
 

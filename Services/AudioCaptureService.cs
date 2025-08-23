@@ -16,14 +16,25 @@ namespace AudioTranscriptionApp.Services
         private ISampleProvider EnsureMono(ISampleProvider source, string sourceName)
         {
             if (source.WaveFormat.Channels == 1) return source;
-            if (source.WaveFormat.Channels == 2)
-            {
-                Logger.Warning($"Downmixing {sourceName} from stereo to mono");
-                return new StereoToMonoSampleProvider(source);
-            }
 
-            Logger.Warning($"Downmixing {sourceName} with {source.WaveFormat.Channels} channels to mono by averaging");
-            return new DownmixToMonoSampleProvider(source);
+            var mode = Properties.Settings.Default.DownmixMode;
+            bool useFirst = string.Equals(mode, "FirstChannel", StringComparison.OrdinalIgnoreCase);
+
+            if (useFirst)
+            {
+                Logger.Warning($"Downmixing {sourceName} by selecting first channel from {source.WaveFormat.Channels} channels");
+                return new SelectChannelSampleProvider(source, 0);
+            }
+            else
+            {
+                if (source.WaveFormat.Channels == 2)
+                {
+                    Logger.Warning($"Downmixing {sourceName} from stereo to mono (average)");
+                    return new StereoToMonoSampleProvider(source);
+                }
+                Logger.Warning($"Downmixing {sourceName} with {source.WaveFormat.Channels} channels to mono by averaging");
+                return new DownmixToMonoSampleProvider(source);
+            }
         }
 
         private ISampleProvider EnsureSampleRate(ISampleProvider source, int targetSampleRate, string sourceName)
@@ -71,6 +82,42 @@ namespace AudioTranscriptionApp.Services
                 return framesRead; // mono samples written equals framesRead
             }
         }
+
+        // Selects a single channel from a multi-channel source as mono
+        private sealed class SelectChannelSampleProvider : ISampleProvider
+        {
+            private readonly ISampleProvider _source;
+            private readonly int _channelIndex;
+            private readonly WaveFormat _waveFormat;
+            private float[] _buffer;
+
+            public SelectChannelSampleProvider(ISampleProvider source, int channelIndex)
+            {
+                _source = source;
+                _channelIndex = Math.Max(0, Math.Min(channelIndex, source.WaveFormat.Channels - 1));
+                _waveFormat = WaveFormat.CreateIeeeFloatWaveFormat(source.WaveFormat.SampleRate, 1);
+            }
+
+            public WaveFormat WaveFormat => _waveFormat;
+
+            public int Read(float[] buffer, int offset, int count)
+            {
+                int channels = _source.WaveFormat.Channels;
+                int framesRequested = count; // mono output
+                if (_buffer == null) _buffer = new float[framesRequested * channels];
+                int sourceSamplesNeeded = framesRequested * channels;
+                if (_buffer.Length < sourceSamplesNeeded) _buffer = new float[sourceSamplesNeeded];
+
+                int samplesRead = _source.Read(_buffer, 0, sourceSamplesNeeded);
+                int framesRead = samplesRead / channels;
+
+                for (int n = 0; n < framesRead; n++)
+                {
+                    buffer[offset + n] = _buffer[n * channels + _channelIndex];
+                }
+                return framesRead;
+            }
+        }
         // V1 Capture (System Audio) - Renamed for clarity
         private WasapiLoopbackCapture _systemAudioCapture;
         // V2 Capture (Microphone)
@@ -80,15 +127,13 @@ namespace AudioTranscriptionApp.Services
         private MixingSampleProvider _mixer;
         private BufferedWaveProvider _systemAudioBuffer;
         private BufferedWaveProvider _microphoneBuffer;
-        private ISampleProvider _systemAudioSampler;
-        private ISampleProvider _microphoneSampler;
 
         // V1 Writer (Now writes mixed output)
         private WaveFileWriter _writer;
         private string _tempFilePath;
         private bool _isRecording = false;
         // Use int for Interlocked: 0 = false, 1 = true
-        private volatile int _processingChunkFlag = 0;
+        private int _processingChunkFlag = 0;
         private Task _writeLoopTask = null; // Keep track of the write loop task
         private bool _isSystemAudioMuted = false; // Mute flag for system audio
         private bool _isMicrophoneMuted = false; // Mute flag for microphone
@@ -480,7 +525,7 @@ namespace AudioTranscriptionApp.Services
         }
 
         // Helper method to downsample audio file
-        private async Task<string> DownsampleAudioFileAsync(string originalFilePath)
+        private string DownsampleAudioFile(string originalFilePath)
         {
             if (string.IsNullOrEmpty(originalFilePath) || !File.Exists(originalFilePath))
             {
@@ -674,7 +719,7 @@ namespace AudioTranscriptionApp.Services
                     try
                     {
                         // Step 1 & 3: Downsample before sending to Whisper
-                        downsampledFilePath = await DownsampleAudioFileAsync(originalFileToProcess);
+                        downsampledFilePath = await Task.Run(() => DownsampleAudioFile(originalFileToProcess));
 
                         if (string.IsNullOrEmpty(downsampledFilePath))
                         {
@@ -803,7 +848,7 @@ namespace AudioTranscriptionApp.Services
                     try
                     {
                         // Step 1 & 3: Downsample before sending to Whisper
-                        downsampledFilePath = await DownsampleAudioFileAsync(originalFileToProcess);
+                        downsampledFilePath = await Task.Run(() => DownsampleAudioFile(originalFileToProcess));
 
                         if (string.IsNullOrEmpty(downsampledFilePath))
                         {
@@ -901,8 +946,6 @@ namespace AudioTranscriptionApp.Services
                  _mixer = null;
                  _systemAudioBuffer = null;
                  _microphoneBuffer = null;
-                 _systemAudioSampler = null;
-                 _microphoneSampler = null;
 
                  if (_writer != null)
                  {

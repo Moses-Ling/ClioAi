@@ -112,6 +112,17 @@ namespace AudioTranscriptionApp
 
             SavePathTextBox.Text = Properties.Settings.Default.DefaultSavePath ?? string.Empty;
 
+            // Downmix Mode
+            string downmix = Properties.Settings.Default.DownmixMode ?? "Average";
+            if (string.Equals(downmix, "FirstChannel", StringComparison.OrdinalIgnoreCase))
+            {
+                DownmixModeComboBox.SelectedIndex = 1;
+            }
+            else
+            {
+                DownmixModeComboBox.SelectedIndex = 0; // Average
+            }
+
             // Load Cleanup Settings
             string encryptedCleanupKey = Properties.Settings.Default.CleanupApiKey ?? string.Empty;
             CleanupApiKeyBox.Password = EncryptionHelper.DecryptString(encryptedCleanupKey);
@@ -195,6 +206,7 @@ namespace AudioTranscriptionApp
                 Properties.Settings.Default.ApiKey = EncryptionHelper.EncryptString(whisperKey);
                 Properties.Settings.Default.ChunkDurationSeconds = (int)ChunkDurationSlider.Value;
                 Properties.Settings.Default.DefaultSavePath = SavePathTextBox.Text;
+                Properties.Settings.Default.DownmixMode = (DownmixModeComboBox.SelectedIndex == 1) ? "FirstChannel" : "Average";
 
                 // Save Cleanup Settings (Get key from visible control)
                 string cleanupKey = ShowCleanupApiKeyCheckBox.IsChecked == true ? CleanupApiKeyTextBox.Text : CleanupApiKeyBox.Password;

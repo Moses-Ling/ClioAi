@@ -1,5 +1,5 @@
 ﻿﻿﻿﻿﻿﻿﻿﻿<?xml version='1.0' encoding='utf-8'?>
-<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="AudioTranscriptionApp.Properties" GeneratedClassName="Settings">
+  <SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="AudioTranscriptionApp.Properties" GeneratedClassName="Settings">
   <Profiles />
   <Settings>
     <!-- User specific settings -->
@@ -44,6 +44,9 @@ Editor Notes – A list of sentences or phrases that were unclear or required as
     </Setting>
     <Setting Name="MicrophoneDeviceId" Type="System.String" Scope="User">
       <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="DownmixMode" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Average</Value>
     </Setting>
   </Settings>
 </SettingsFile>
