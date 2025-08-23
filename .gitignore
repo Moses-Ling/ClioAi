@@ -18,6 +18,8 @@ packages/
 # Logs
 app.log
 *.log
+# MSBuild fileLogger artifacts
+*log,Verbosity
 
 # Other
 Thumbs.db
