@@ -90,7 +90,7 @@ namespace AudioTranscriptionApp
         private void DisplayVersion()
         {
             // Official version update
-            VersionTextBlock.Text = "Version: 1.2";
+            VersionTextBlock.Text = "Version: 1.4";
             // The commented out try-catch block was causing the brace issue.
             // Removing the erroneous closing brace and the extra Logger call inside the comment.
             /*
@@ -583,7 +583,7 @@ namespace AudioTranscriptionApp
                 if (File.Exists(licenseFilePath))
                 {
                     Logger.Info($"Opening LICENSE file: {licenseFilePath}");
-                    Process.Start(licenseFilePath);
+                    var psi = new ProcessStartInfo(licenseFilePath){ UseShellExecute = true }; Process.Start(psi);
                 }
                 else
                 {
@@ -626,3 +626,4 @@ namespace AudioTranscriptionApp
         }
     }
 }
+

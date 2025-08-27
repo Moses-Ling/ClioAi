@@ -55,7 +55,7 @@
                             <Label Grid.Row="3" Grid.Column="0" Content="Local Path:" VerticalAlignment="Center"/>
                             <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" Margin="5">
                                 <TextBox x:Name="TranscriptionLocalPathTextBox" Width="280" ToolTip="Must start with / e.g., /v1/audio/transcriptions"/>
-                                <Button x:Name="TranscriptionTestButton" Content="Test Connection" Width="120" Margin="10,0,0,0" Click="TranscriptionTestButton_Click"/>
+                                <Button x:Name="TranscriptionTestButton" Content="Test" Width="120" Margin="10,0,0,0" Click="TranscriptionTestButton_Click"/>
                             </StackPanel>
                             <Label Grid.Row="4" Grid.Column="0" Content="Local Model:" VerticalAlignment="Center"/>
                             <TextBox Grid.Row="4" Grid.Column="1" x:Name="TranscriptionLocalModelTextBox" Margin="5"/>
@@ -157,7 +157,7 @@
                             <Label Grid.Row="4" Grid.Column="0" Content="Local Path:" VerticalAlignment="Center"/>
                             <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal" Margin="5">
                                 <TextBox x:Name="CleanupLocalPathTextBox" Width="280" ToolTip="Must start with / e.g., /v1/chat/completions"/>
-                                <Button x:Name="CleanupTestButton" Content="Test Connection" Width="120" Margin="10,0,0,0" Click="CleanupTestButton_Click"/>
+                                <Button x:Name="CleanupTestButton" Content="Test" Width="120" Margin="10,0,0,0" Click="CleanupTestButton_Click"/>
                             </StackPanel>
                         </Grid>
                     </GroupBox>
@@ -208,7 +208,7 @@
                             <Label Grid.Row="4" Grid.Column="0" Content="Local Path:" VerticalAlignment="Center"/>
                             <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal" Margin="5">
                                 <TextBox x:Name="SummarizeLocalPathTextBox" Width="280" ToolTip="Must start with / e.g., /v1/chat/completions"/>
-                                <Button x:Name="SummarizeTestButton" Content="Test Connection" Width="120" Margin="10,0,0,0" Click="SummarizeTestButton_Click"/>
+                                <Button x:Name="SummarizeTestButton" Content="Test" Width="120" Margin="10,0,0,0" Click="SummarizeTestButton_Click"/>
                             </StackPanel>
                         </Grid>
                     </GroupBox>
@@ -237,7 +237,7 @@
                     <TextBlock Text="- Markdig (BSD 2-Clause License)" Margin="10,0,0,10"/>
 
                     <TextBlock Text="This software is licensed under the MIT License." Margin="0,10,0,5"/>
-                    <Button x:Name="ViewLicenseButton" Content="View Full License Text" HorizontalAlignment="Left" Click="ViewLicenseButton_Click"/>
+                    <Button x:Name="ViewLicenseButton" Content="View License" HorizontalAlignment="Left" Click="ViewLicenseButton_Click"/>
 
                 </StackPanel>
             </TabItem>
@@ -252,3 +252,5 @@
 
     </Grid>
 </Window>
+
+
