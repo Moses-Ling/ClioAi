@@ -177,5 +177,161 @@ Editor Notes – A list of sentences or phrases that were unclear or required as
                 this["DownmixMode"] = value;
             }
         }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool TranscriptionUseLocal {
+            get {
+                return ((bool)(this["TranscriptionUseLocal"]));
+            }
+            set {
+                this["TranscriptionUseLocal"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("http://localhost:5042")]
+        public string TranscriptionLocalHost {
+            get {
+                return ((string)(this["TranscriptionLocalHost"]));
+            }
+            set {
+                this["TranscriptionLocalHost"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("/v1/audio/transcriptions")]
+        public string TranscriptionLocalPath {
+            get {
+                return ((string)(this["TranscriptionLocalPath"]));
+            }
+            set {
+                this["TranscriptionLocalPath"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("whisper-base")]
+        public string TranscriptionLocalModel {
+            get {
+                return ((string)(this["TranscriptionLocalModel"]));
+            }
+            set {
+                this["TranscriptionLocalModel"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool CleanupUseLocal {
+            get {
+                return ((bool)(this["CleanupUseLocal"]));
+            }
+            set {
+                this["CleanupUseLocal"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("http://localhost:1234")]
+        public string CleanupLocalHost {
+            get {
+                return ((string)(this["CleanupLocalHost"]));
+            }
+            set {
+                this["CleanupLocalHost"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("/v1/chat/completions")]
+        public string CleanupLocalPath {
+            get {
+                return ((string)(this["CleanupLocalPath"]));
+            }
+            set {
+                this["CleanupLocalPath"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("granite-3.1-8b-instruct")]
+        public string CleanupLocalModel {
+            get {
+                return ((string)(this["CleanupLocalModel"]));
+            }
+            set {
+                this["CleanupLocalModel"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool SummarizeUseLocal {
+            get {
+                return ((bool)(this["SummarizeUseLocal"]));
+            }
+            set {
+                this["SummarizeUseLocal"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("http://localhost:1234")]
+        public string SummarizeLocalHost {
+            get {
+                return ((string)(this["SummarizeLocalHost"]));
+            }
+            set {
+                this["SummarizeLocalHost"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("/v1/chat/completions")]
+        public string SummarizeLocalPath {
+            get {
+                return ((string)(this["SummarizeLocalPath"]));
+            }
+            set {
+                this["SummarizeLocalPath"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("granite-3.1-8b-instruct")]
+        public string SummarizeLocalModel {
+            get {
+                return ((string)(this["SummarizeLocalModel"]));
+            }
+            set {
+                this["SummarizeLocalModel"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool ExportAppendFooter {
+            get {
+                return ((bool)(this["ExportAppendFooter"]));
+            }
+            set {
+                this["ExportAppendFooter"] = value;
+            }
+        }
     }
 }

@@ -43,10 +43,14 @@ namespace AudioTranscriptionApp.Services
         public async Task<string> TranscribeAudioFileAsync(string audioFilePath)
         {
             Logger.Info($"Attempting to transcribe audio file: {audioFilePath}");
-            if (string.IsNullOrEmpty(_httpClient.DefaultRequestHeaders.Authorization?.Parameter))
+            bool useLocal = Properties.Settings.Default.TranscriptionUseLocal;
+            if (!useLocal)
             {
-                Logger.Error("Transcription failed: API key is not set.");
-                throw new InvalidOperationException("OpenAI API key is not set. Please configure it in Settings.");
+                if (string.IsNullOrEmpty(_httpClient.DefaultRequestHeaders.Authorization?.Parameter))
+                {
+                    Logger.Error("Transcription failed: API key is not set (Cloud mode).");
+                    throw new InvalidOperationException("OpenAI API key is not set. Please configure it in Settings.");
+                }
             }
 
             // Read the audio file once so retries don't depend on the on-disk file
@@ -77,12 +81,35 @@ namespace AudioTranscriptionApp.Services
                             fileContent.Headers.ContentType = new MediaTypeHeaderValue("audio/wav");
                             formContent.Add(fileContent, "file", "audio.wav");
 
-                            // Add the model parameter (using the smallest model to save costs)
-                            formContent.Add(new StringContent("whisper-1"), "model");
+                            // Add the model parameter
+                            string model = useLocal ? (Properties.Settings.Default.TranscriptionLocalModel ?? "whisper-base") : "whisper-1";
+                            formContent.Add(new StringContent(model), "model");
 
-                            // Send to OpenAI Whisper API
+                            // Send to target endpoint
                             Logger.Info($"Sending transcription request (Attempt {currentRetry + 1}/{MaxRetries + 1})...");
-                            var response = await _httpClient.PostAsync("https://api.openai.com/v1/audio/transcriptions", formContent);
+                            HttpResponseMessage response;
+                            if (useLocal)
+                            {
+                                string host = (Properties.Settings.Default.TranscriptionLocalHost ?? "http://localhost:5042").TrimEnd('/');
+                                string path = Properties.Settings.Default.TranscriptionLocalPath ?? "/v1/audio/transcriptions";
+                                if (!path.StartsWith("/")) path = "/" + path;
+                                string url = host + path;
+                                // Ensure no auth header for local
+                                var originalAuth = _httpClient.DefaultRequestHeaders.Authorization;
+                                _httpClient.DefaultRequestHeaders.Authorization = null;
+                                try
+                                {
+                                    response = await _httpClient.PostAsync(url, formContent);
+                                }
+                                finally
+                                {
+                                    _httpClient.DefaultRequestHeaders.Authorization = originalAuth;
+                                }
+                            }
+                            else
+                            {
+                                response = await _httpClient.PostAsync("https://api.openai.com/v1/audio/transcriptions", formContent);
+                            }
                             Logger.Info($"Received API response status: {response.StatusCode}");
 
                             if (response.IsSuccessStatusCode)

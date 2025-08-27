@@ -142,6 +142,7 @@ namespace AudioTranscriptionApp
             ChunkDurationSlider.Value = chunkDuration;
 
             SavePathTextBox.Text = Properties.Settings.Default.DefaultSavePath ?? string.Empty;
+            ExportFooterCheckBox.IsChecked = Properties.Settings.Default.ExportAppendFooter;
 
             // Downmix Mode
             string downmix = Properties.Settings.Default.DownmixMode ?? "Average";
@@ -154,11 +155,28 @@ namespace AudioTranscriptionApp
                 DownmixModeComboBox.SelectedIndex = 0; // Average
             }
 
+            // Transcription Local/Cloud Settings
+            TranscriptionLocalHostTextBox.Text = Properties.Settings.Default.TranscriptionLocalHost ?? "http://localhost:5042";
+            TranscriptionLocalPathTextBox.Text = Properties.Settings.Default.TranscriptionLocalPath ?? "/v1/audio/transcriptions";
+            TranscriptionLocalModelTextBox.Text = Properties.Settings.Default.TranscriptionLocalModel ?? "whisper-base";
+            if (Properties.Settings.Default.TranscriptionUseLocal)
+                TranscriptionLocalRadio.IsChecked = true;
+            else
+                TranscriptionCloudRadio.IsChecked = true;
+            UpdateTranscriptionModeEnabled();
+
             // Load Cleanup Settings
             string encryptedCleanupKey = Properties.Settings.Default.CleanupApiKey ?? string.Empty;
             CleanupApiKeyBox.Password = EncryptionHelper.DecryptString(encryptedCleanupKey);
             CleanupApiKeyTextBox.Text = CleanupApiKeyBox.Password; // Sync textbox initially
             CleanupModelTextBox.Text = Properties.Settings.Default.CleanupModel ?? string.Empty;
+            CleanupLocalHostTextBox.Text = Properties.Settings.Default.CleanupLocalHost ?? "http://localhost:1234";
+            CleanupLocalPathTextBox.Text = Properties.Settings.Default.CleanupLocalPath ?? "/v1/chat/completions";
+            if (Properties.Settings.Default.CleanupUseLocal)
+                CleanupLocalRadio.IsChecked = true;
+            else
+                CleanupCloudRadio.IsChecked = true;
+            UpdateCleanupModeEnabled();
             CleanupPromptTextBox.Text = Properties.Settings.Default.CleanupPrompt ?? string.Empty;
 
             // Load Summarize Settings
@@ -167,6 +185,13 @@ namespace AudioTranscriptionApp
             SummarizeApiKeyTextBox.Text = SummarizeApiKeyBox.Password; // Sync textbox initially
             SummarizeModelTextBox.Text = Properties.Settings.Default.SummarizeModel ?? string.Empty;
             SummarizePromptTextBox.Text = Properties.Settings.Default.SummarizePrompt ?? string.Empty;
+            SummarizeLocalHostTextBox.Text = Properties.Settings.Default.SummarizeLocalHost ?? "http://localhost:1234";
+            SummarizeLocalPathTextBox.Text = Properties.Settings.Default.SummarizeLocalPath ?? "/v1/chat/completions";
+            if (Properties.Settings.Default.SummarizeUseLocal)
+                SummarizeLocalRadio.IsChecked = true;
+            else
+                SummarizeCloudRadio.IsChecked = true;
+            UpdateSummarizeModeEnabled();
 
             // Load Device Selections
             string savedSystemDeviceId = Properties.Settings.Default.SystemAudioDeviceId;
@@ -238,18 +263,31 @@ namespace AudioTranscriptionApp
                 Properties.Settings.Default.ChunkDurationSeconds = (int)ChunkDurationSlider.Value;
                 Properties.Settings.Default.DefaultSavePath = SavePathTextBox.Text;
                 Properties.Settings.Default.DownmixMode = (DownmixModeComboBox.SelectedIndex == 1) ? "FirstChannel" : "Average";
+                Properties.Settings.Default.ExportAppendFooter = ExportFooterCheckBox.IsChecked == true;
+
+                // Save Transcription Local/Cloud
+                Properties.Settings.Default.TranscriptionUseLocal = TranscriptionLocalRadio.IsChecked == true;
+                Properties.Settings.Default.TranscriptionLocalHost = (TranscriptionLocalHostTextBox.Text ?? string.Empty).Trim();
+                Properties.Settings.Default.TranscriptionLocalPath = NormalizePath(TranscriptionLocalPathTextBox.Text);
+                Properties.Settings.Default.TranscriptionLocalModel = (TranscriptionLocalModelTextBox.Text ?? string.Empty).Trim();
 
                 // Save Cleanup Settings (Get key from visible control)
                 string cleanupKey = ShowCleanupApiKeyCheckBox.IsChecked == true ? CleanupApiKeyTextBox.Text : CleanupApiKeyBox.Password;
                 Properties.Settings.Default.CleanupApiKey = EncryptionHelper.EncryptString(cleanupKey);
                 Properties.Settings.Default.CleanupModel = CleanupModelTextBox.Text;
                 Properties.Settings.Default.CleanupPrompt = CleanupPromptTextBox.Text;
+                Properties.Settings.Default.CleanupUseLocal = CleanupLocalRadio.IsChecked == true;
+                Properties.Settings.Default.CleanupLocalHost = (CleanupLocalHostTextBox.Text ?? string.Empty).Trim();
+                Properties.Settings.Default.CleanupLocalPath = NormalizePath(CleanupLocalPathTextBox.Text);
 
                 // Save Summarize Settings (Get key from visible control)
                 string summarizeKey = ShowSummarizeApiKeyCheckBox.IsChecked == true ? SummarizeApiKeyTextBox.Text : SummarizeApiKeyBox.Password;
                 Properties.Settings.Default.SummarizeApiKey = EncryptionHelper.EncryptString(summarizeKey);
                 Properties.Settings.Default.SummarizeModel = SummarizeModelTextBox.Text;
                 Properties.Settings.Default.SummarizePrompt = SummarizePromptTextBox.Text;
+                Properties.Settings.Default.SummarizeUseLocal = SummarizeLocalRadio.IsChecked == true;
+                Properties.Settings.Default.SummarizeLocalHost = (SummarizeLocalHostTextBox.Text ?? string.Empty).Trim();
+                Properties.Settings.Default.SummarizeLocalPath = NormalizePath(SummarizeLocalPathTextBox.Text);
 
                 // Save Device Selections
                 Properties.Settings.Default.SystemAudioDeviceId = SystemAudioDeviceComboBox.SelectedValue as string;
@@ -278,6 +316,120 @@ namespace AudioTranscriptionApp
             Logger.Info("Settings window cancelled.");
             this.DialogResult = false;
             this.Close();
+        }
+
+        private string NormalizePath(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path)) return "/";
+            path = path.Trim();
+            if (!path.StartsWith("/")) path = "/" + path;
+            return path;
+        }
+
+        // Mode toggle handlers
+        private void TranscriptionModeRadio_Checked(object sender, RoutedEventArgs e)
+        {
+            UpdateTranscriptionModeEnabled();
+        }
+        private void CleanupModeRadio_Checked(object sender, RoutedEventArgs e)
+        {
+            UpdateCleanupModeEnabled();
+        }
+        private void SummarizeModeRadio_Checked(object sender, RoutedEventArgs e)
+        {
+            UpdateSummarizeModeEnabled();
+        }
+
+        private void UpdateTranscriptionModeEnabled()
+        {
+            bool useLocal = TranscriptionLocalRadio.IsChecked == true;
+            ApiKeyBox.IsEnabled = !useLocal;
+            ApiKeyTextBox.IsEnabled = !useLocal;
+            ShowApiKeyCheckBox.IsEnabled = !useLocal;
+            TranscriptionLocalHostTextBox.IsEnabled = useLocal;
+            TranscriptionLocalPathTextBox.IsEnabled = useLocal;
+            TranscriptionTestButton.IsEnabled = useLocal;
+            TranscriptionLocalModelTextBox.IsEnabled = useLocal;
+        }
+
+        private void UpdateCleanupModeEnabled()
+        {
+            bool useLocal = CleanupLocalRadio.IsChecked == true;
+            CleanupApiKeyBox.IsEnabled = !useLocal;
+            CleanupApiKeyTextBox.IsEnabled = !useLocal;
+            ShowCleanupApiKeyCheckBox.IsEnabled = !useLocal;
+            CleanupModelTextBox.IsEnabled = !useLocal;
+            CleanupLocalHostTextBox.IsEnabled = useLocal;
+            CleanupLocalPathTextBox.IsEnabled = useLocal;
+            CleanupTestButton.IsEnabled = useLocal;
+        }
+
+        private void UpdateSummarizeModeEnabled()
+        {
+            bool useLocal = SummarizeLocalRadio.IsChecked == true;
+            SummarizeApiKeyBox.IsEnabled = !useLocal;
+            SummarizeApiKeyTextBox.IsEnabled = !useLocal;
+            ShowSummarizeApiKeyCheckBox.IsEnabled = !useLocal;
+            SummarizeModelTextBox.IsEnabled = !useLocal;
+            SummarizeLocalHostTextBox.IsEnabled = useLocal;
+            SummarizeLocalPathTextBox.IsEnabled = useLocal;
+            SummarizeTestButton.IsEnabled = useLocal;
+        }
+
+        // Local Test Buttons
+        private async void TranscriptionTestButton_Click(object sender, RoutedEventArgs e)
+        {
+            await TestLocalEndpointAsync(TranscriptionLocalHostTextBox.Text);
+        }
+
+        private async void CleanupTestButton_Click(object sender, RoutedEventArgs e)
+        {
+            await TestLocalEndpointAsync(CleanupLocalHostTextBox.Text);
+        }
+
+        private async void SummarizeTestButton_Click(object sender, RoutedEventArgs e)
+        {
+            await TestLocalEndpointAsync(SummarizeLocalHostTextBox.Text);
+        }
+
+        private async System.Threading.Tasks.Task TestLocalEndpointAsync(string host)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(host))
+                {
+                    System.Windows.MessageBox.Show("Enter Local Host including protocol and port, e.g., http://localhost:1234", "Missing Host", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+                string url = host.Trim().TrimEnd('/') + "/v1/models";
+                Logger.Info($"Testing local endpoint: {url}")
+                ;using (var client = new System.Net.Http.HttpClient())
+                {
+                    client.Timeout = TimeSpan.FromSeconds(30);
+                    var response = await client.GetAsync(url);
+                    Logger.Info($"Local test response: {(int)response.StatusCode} {response.StatusCode}");
+                    if (response.IsSuccessStatusCode)
+                    {
+                        System.Windows.MessageBox.Show("Connection successful.", "Local Test", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                    else
+                    {
+                        string content = await response.Content.ReadAsStringAsync();
+                        Logger.Warning($"Local test failed: {response.StatusCode} - {content}");
+                        System.Windows.MessageBox.Show($"Connection failed: {(int)response.StatusCode} {response.StatusCode}", "Local Test", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    }
+                }
+            }
+            catch (System.Threading.Tasks.TaskCanceledException)
+            {
+                Logger.Warning("Local test failed: timed out after 30s");
+                System.Windows.MessageBox.Show("Connection failed: timed out after 30s", "Local Test", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("Local test error", ex);
+                System.Windows.MessageBox.Show($"Connection failed: {ex.Message}", "Local Test", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private async void CleanupListModelsButton_Click(object sender, RoutedEventArgs e)

@@ -179,7 +179,25 @@ namespace AudioTranscriptionApp
                 Dispatcher.Invoke(() =>
                 {
                     StatusTextBlock.Text = $"Error: {ex.Message}";
-                    System.Windows.MessageBox.Show(ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    // Offer to open Settings if devices/mixer failed to init
+                    bool initFailed = ex is InvalidOperationException && (ex.Message?.IndexOf("devices or mixer failed", StringComparison.OrdinalIgnoreCase) >= 0);
+                    if (initFailed)
+                    {
+                        var res = System.Windows.MessageBox.Show(
+                            "Audio devices or mixer failed to initialize.\n\nOpen Settings to select valid System Audio and Microphone devices?",
+                            "Audio Devices Required",
+                            MessageBoxButton.YesNo,
+                            MessageBoxImage.Warning);
+                        if (res == MessageBoxResult.Yes)
+                        {
+                            var settingsWindow = new SettingsWindow { Owner = this };
+                            settingsWindow.ShowDialog();
+                        }
+                    }
+                    else
+                    {
+                        System.Windows.MessageBox.Show(ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
                 });
             }
         }
@@ -187,12 +205,16 @@ namespace AudioTranscriptionApp
         private void StartButton_Click(object sender, RoutedEventArgs e)
         {
             Logger.Info("StartButton clicked.");
-            string encryptedKeyCheck = Properties.Settings.Default.ApiKey ?? string.Empty;
-            if (string.IsNullOrEmpty(EncryptionHelper.DecryptString(encryptedKeyCheck))) // Check decrypted key
+            // Require API key only when using Cloud mode for transcription
+            if (!(Properties.Settings.Default.TranscriptionUseLocal))
             {
-                 Logger.Warning("Start recording attempted without Whisper API key configured.");
-                 System.Windows.MessageBox.Show("Please configure your OpenAI API key for Whisper in the Settings window first.", "API Key Required", MessageBoxButton.OK, MessageBoxImage.Warning);
-                 return;
+                string encryptedKeyCheck = Properties.Settings.Default.ApiKey ?? string.Empty;
+                if (string.IsNullOrEmpty(EncryptionHelper.DecryptString(encryptedKeyCheck))) // Check decrypted key
+                {
+                    Logger.Warning("Start recording attempted without Whisper API key configured (Cloud mode).");
+                    System.Windows.MessageBox.Show("Please configure your OpenAI API key for Whisper in the Settings window first.", "API Key Required", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
             }
              if (string.IsNullOrEmpty(Properties.Settings.Default.SystemAudioDeviceId) || string.IsNullOrEmpty(Properties.Settings.Default.MicrophoneDeviceId))
             {
@@ -311,20 +333,23 @@ namespace AudioTranscriptionApp
             string encryptedCleanupKey = Properties.Settings.Default.CleanupApiKey ?? string.Empty;
             string decryptedCleanupKey = EncryptionHelper.DecryptString(encryptedCleanupKey);
 
-            if (string.IsNullOrEmpty(decryptedCleanupKey))
+            if (!Properties.Settings.Default.CleanupUseLocal)
             {
-                 Logger.Warning("Cleanup attempted without Cleanup API key configured.");
-                 System.Windows.MessageBox.Show("Please configure your OpenAI API key for Cleanup in the Settings window first.", "API Key Required", MessageBoxButton.OK, MessageBoxImage.Warning);
-                 return;
+                if (string.IsNullOrEmpty(decryptedCleanupKey))
+                {
+                     Logger.Warning("Cleanup attempted without Cleanup API key configured (Cloud mode).");
+                     System.Windows.MessageBox.Show("Please configure your OpenAI API key for Cleanup in the Settings window first.", "API Key Required", MessageBoxButton.OK, MessageBoxImage.Warning);
+                     return;
+                }
+                _openAiChatService.UpdateApiKey(decryptedCleanupKey);
             }
-            _openAiChatService.UpdateApiKey(decryptedCleanupKey);
 
             SetUiBusyState(true, "Cleaning up text...");
 
             try
             {
-                Logger.Info($"Calling OpenAI Chat API (Model: {cleanupModel}) for cleanup...");
-                string cleanedText = await _openAiChatService.GetResponseAsync(cleanupPrompt, originalText, cleanupModel);
+                Logger.Info($"Calling Chat API for cleanup (Model: {cleanupModel})...");
+                string cleanedText = await _openAiChatService.GetCleanupResponseAsync(cleanupPrompt, originalText, cleanupModel);
 
                 if (cleanedText != null)
                 {
@@ -387,23 +412,38 @@ namespace AudioTranscriptionApp
             string encryptedSummarizeKey = Properties.Settings.Default.SummarizeApiKey ?? string.Empty;
             string decryptedSummarizeKey = EncryptionHelper.DecryptString(encryptedSummarizeKey);
 
-            if (string.IsNullOrEmpty(decryptedSummarizeKey))
+            if (!Properties.Settings.Default.SummarizeUseLocal)
             {
-                 Logger.Warning("Summarize attempted without Summarize API key configured.");
-                 System.Windows.MessageBox.Show("Please configure your OpenAI API key for Summarize in the Settings window first.", "API Key Required", MessageBoxButton.OK, MessageBoxImage.Warning);
-                 return;
+                if (string.IsNullOrEmpty(decryptedSummarizeKey))
+                {
+                     Logger.Warning("Summarize attempted without Summarize API key configured (Cloud mode).");
+                     System.Windows.MessageBox.Show("Please configure your OpenAI API key for Summarize in the Settings window first.", "API Key Required", MessageBoxButton.OK, MessageBoxImage.Warning);
+                     return;
+                }
+                _openAiChatService.UpdateApiKey(decryptedSummarizeKey);
             }
-            _openAiChatService.UpdateApiKey(decryptedSummarizeKey);
 
             SetUiBusyState(true, "Summarizing text...");
 
             try
             {
-                Logger.Info($"Calling OpenAI Chat API (Model: {summarizeModel}) for summarization...");
-                string summaryMd = await _openAiChatService.GetResponseAsync(summarizePrompt, textToSummarize, summarizeModel);
+                Logger.Info($"Calling Chat API for summarization (Model: {summarizeModel})...");
+                string summaryMd = await _openAiChatService.GetSummarizeResponseAsync(summarizePrompt, textToSummarize, summarizeModel);
 
                 if (summaryMd != null)
                 {
+                    if (Properties.Settings.Default.ExportAppendFooter)
+                    {
+                        try
+                        {
+                            string footerMd = "\n\n## **ClioAi** Capturing Conversation, preserving privacy\nhttp://ClioAi.app\n";
+                            summaryMd += footerMd;
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Warning($"Failed to append footer to summary MD: {ex.Message}");
+                        }
+                    }
                     TranscriptionTextBox.Text = summaryMd;
                     Logger.Info("Summarization API call successful.");
 

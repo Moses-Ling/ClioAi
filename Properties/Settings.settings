@@ -48,5 +48,48 @@ Editor Notes – A list of sentences or phrases that were unclear or required as
     <Setting Name="DownmixMode" Type="System.String" Scope="User">
       <Value Profile="(Default)">Average</Value>
     </Setting>
+    <!-- v1.4 Local/Cloud switching and footer settings -->
+    <Setting Name="TranscriptionUseLocal" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="TranscriptionLocalHost" Type="System.String" Scope="User">
+      <Value Profile="(Default)">http://localhost:5042</Value>
+    </Setting>
+    <Setting Name="TranscriptionLocalPath" Type="System.String" Scope="User">
+      <Value Profile="(Default)">/v1/audio/transcriptions</Value>
+    </Setting>
+    <Setting Name="TranscriptionLocalModel" Type="System.String" Scope="User">
+      <Value Profile="(Default)">whisper-base</Value>
+    </Setting>
+
+    <Setting Name="CleanupUseLocal" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="CleanupLocalHost" Type="System.String" Scope="User">
+      <Value Profile="(Default)">http://localhost:1234</Value>
+    </Setting>
+    <Setting Name="CleanupLocalPath" Type="System.String" Scope="User">
+      <Value Profile="(Default)">/v1/chat/completions</Value>
+    </Setting>
+    <Setting Name="CleanupLocalModel" Type="System.String" Scope="User">
+      <Value Profile="(Default)">granite-3.1-8b-instruct</Value>
+    </Setting>
+
+    <Setting Name="SummarizeUseLocal" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="SummarizeLocalHost" Type="System.String" Scope="User">
+      <Value Profile="(Default)">http://localhost:1234</Value>
+    </Setting>
+    <Setting Name="SummarizeLocalPath" Type="System.String" Scope="User">
+      <Value Profile="(Default)">/v1/chat/completions</Value>
+    </Setting>
+    <Setting Name="SummarizeLocalModel" Type="System.String" Scope="User">
+      <Value Profile="(Default)">granite-3.1-8b-instruct</Value>
+    </Setting>
+
+    <Setting Name="ExportAppendFooter" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

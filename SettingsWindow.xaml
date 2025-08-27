@@ -24,14 +24,23 @@
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <Label Grid.Row="0" Grid.Column="0" Content="Whisper API Key:" VerticalAlignment="Center"/>
-                            <Grid Grid.Row="0" Grid.Column="1" Margin="5">
+                            <!-- Mode -->
+                            <Label Grid.Row="0" Grid.Column="0" Content="Mode:" VerticalAlignment="Center"/>
+                            <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Margin="5">
+                                <RadioButton x:Name="TranscriptionCloudRadio" Content="Cloud" GroupName="TranscriptionMode" Margin="0,0,15,0" Checked="TranscriptionModeRadio_Checked"/>
+                                <RadioButton x:Name="TranscriptionLocalRadio" Content="Local" GroupName="TranscriptionMode" Checked="TranscriptionModeRadio_Checked"/>
+                            </StackPanel>
+                            <!-- Cloud API Key -->
+                            <Label Grid.Row="1" Grid.Column="0" Content="Whisper API Key:" VerticalAlignment="Center"/>
+                            <Grid Grid.Row="1" Grid.Column="1" Margin="5">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
@@ -40,19 +49,22 @@
                                 <TextBox x:Name="ApiKeyTextBox" VerticalAlignment="Center" Visibility="Collapsed"/>
                                 <CheckBox Grid.Column="1" x:Name="ShowApiKeyCheckBox" Content="Show" VerticalAlignment="Center" Margin="5,0,0,0" Checked="ShowApiKeyCheckBox_Checked" Unchecked="ShowApiKeyCheckBox_Unchecked"/>
                             </Grid>
-                            <Label Grid.Row="1" Grid.Column="0" Content="Default Save Path:" VerticalAlignment="Center"/>
-                            <TextBox Grid.Row="1" Grid.Column="1" x:Name="SavePathTextBox" VerticalAlignment="Center" Margin="5"/>
-                            <Button Grid.Row="1" Grid.Column="2" x:Name="BrowseButton" Content="..." Width="30" Margin="5" Click="BrowseButton_Click"/>
-                            <Label Grid.Row="2" Grid.Column="0" Content="Chunk Duration (sec):" VerticalAlignment="Center"/>
-                            <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="5">
-                                <Slider x:Name="ChunkDurationSlider" Minimum="5" Maximum="25" Width="150" ValueChanged="ChunkDurationSlider_ValueChanged" TickFrequency="5" IsSnapToTickEnabled="True"/>
-                                <TextBox x:Name="ChunkDurationTextBox" Width="40" Margin="10,0,0,0" Text="{Binding Value, ElementName=ChunkDurationSlider, StringFormat={}{0:N0}}" IsReadOnly="True"/>
+                            <!-- Local Host/Path/Model -->
+                            <Label Grid.Row="2" Grid.Column="0" Content="Local Host:" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="2" Grid.Column="1" x:Name="TranscriptionLocalHostTextBox" Margin="5" ToolTip="Include protocol and port, e.g., http://localhost:5042"/>
+                            <Label Grid.Row="3" Grid.Column="0" Content="Local Path:" VerticalAlignment="Center"/>
+                            <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" Margin="5">
+                                <TextBox x:Name="TranscriptionLocalPathTextBox" Width="280" ToolTip="Must start with / e.g., /v1/audio/transcriptions"/>
+                                <Button x:Name="TranscriptionTestButton" Content="Test Connection" Width="120" Margin="10,0,0,0" Click="TranscriptionTestButton_Click"/>
                             </StackPanel>
+                            <Label Grid.Row="4" Grid.Column="0" Content="Local Model:" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="4" Grid.Column="1" x:Name="TranscriptionLocalModelTextBox" Margin="5"/>
                         </Grid>
                     </GroupBox>
                     <GroupBox Header="Audio">
                         <Grid Margin="10,5,10,10">
                             <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
@@ -76,6 +88,29 @@
                                 <ComboBoxItem Content="Average All Channels" Tag="Average"/>
                                 <ComboBoxItem Content="Use First Channel" Tag="FirstChannel"/>
                             </ComboBox>
+                            <Label Grid.Row="3" Grid.Column="0" Content="Chunk Duration (sec):" VerticalAlignment="Center"/>
+                            <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="5">
+                                <Slider x:Name="ChunkDurationSlider" Minimum="5" Maximum="25" Width="150" ValueChanged="ChunkDurationSlider_ValueChanged" TickFrequency="5" IsSnapToTickEnabled="True"/>
+                                <TextBox x:Name="ChunkDurationTextBox" Width="40" Margin="10,0,0,0" Text="{Binding Value, ElementName=ChunkDurationSlider, StringFormat={}{0:N0}}" IsReadOnly="True"/>
+                            </StackPanel>
+                        </Grid>
+                    </GroupBox>
+                    <GroupBox Header="Other Settings" Margin="0,10,0,0">
+                        <Grid Margin="10,5,10,10">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Label Grid.Row="0" Grid.Column="0" Content="Default Save Path:" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="0" Grid.Column="1" x:Name="SavePathTextBox" VerticalAlignment="Center" Margin="5"/>
+                            <Button Grid.Row="0" Grid.Column="2" x:Name="BrowseButton" Content="..." Width="30" Margin="5" Click="BrowseButton_Click"/>
+                            <Label Grid.Row="1" Grid.Column="0" Content="Export Footer:" VerticalAlignment="Center"/>
+                            <CheckBox Grid.Row="1" Grid.Column="1" x:Name="ExportFooterCheckBox" Content="Append footer to summary exports" Margin="5,0,0,0"/>
                         </Grid>
                     </GroupBox>
                 </StackPanel>
@@ -83,76 +118,104 @@
 
             <!-- Clean Up Settings Tab -->
             <TabItem Header="Clean Up">
-                <Grid Margin="10">
-                     <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-
-                    <!-- Cleanup API Key -->
-                    <Label Grid.Row="0" Grid.Column="0" Content="OpenAI API Key (Cleanup):" VerticalAlignment="Center"/>
-                     <Grid Grid.Row="0" Grid.Column="1" Margin="5">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <PasswordBox x:Name="CleanupApiKeyBox" VerticalAlignment="Center" />
-                        <TextBox x:Name="CleanupApiKeyTextBox" VerticalAlignment="Center" Visibility="Collapsed"/>
-                        <CheckBox Grid.Column="1" x:Name="ShowCleanupApiKeyCheckBox" Content="Show" VerticalAlignment="Center" Margin="5,0,0,0" Checked="ShowCleanupApiKeyCheckBox_Checked" Unchecked="ShowCleanupApiKeyCheckBox_Unchecked"/>
-                    </Grid>
-
-                    <!-- Cleanup Model (free text) -->
-                    <Label Grid.Row="1" Grid.Column="0" Content="Model:" VerticalAlignment="Center"/>
-                    <TextBox Grid.Row="1" Grid.Column="1" x:Name="CleanupModelTextBox" VerticalAlignment="Center" Margin="5" ToolTip="Enter model ID per provider; free-text to avoid deprecations."/>
-                    <Button Grid.Row="1" Grid.Column="2" x:Name="CleanupListModelsButton" Content="List Models" Width="95" Margin="5" Click="CleanupListModelsButton_Click"/>
-
-                    <!-- Cleanup Prompt -->
-                    <Label Grid.Row="2" Grid.Column="0" Content="Prompt:" VerticalAlignment="Top" Margin="0,5,0,0"/>
-                    <TextBox Grid.Row="2" Grid.Column="1" x:Name="CleanupPromptTextBox" VerticalAlignment="Stretch" Margin="5" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Height="180"/>
-
-                </Grid>
+                <StackPanel Margin="10" Orientation="Vertical">
+                    <GroupBox Header="Cleanup" Margin="0,0,0,10">
+                        <Grid Margin="10,5,10,10">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Label Grid.Row="0" Grid.Column="0" Content="Mode:" VerticalAlignment="Center"/>
+                            <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Margin="5">
+                                <RadioButton x:Name="CleanupCloudRadio" Content="Cloud" GroupName="CleanupMode" Margin="0,0,15,0" Checked="CleanupModeRadio_Checked"/>
+                                <RadioButton x:Name="CleanupLocalRadio" Content="Local" GroupName="CleanupMode" Checked="CleanupModeRadio_Checked"/>
+                            </StackPanel>
+                            <!-- Cloud -->
+                            <Label Grid.Row="1" Grid.Column="0" Content="OpenAI API Key:" VerticalAlignment="Center"/>
+                            <Grid Grid.Row="1" Grid.Column="1" Margin="5">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <PasswordBox x:Name="CleanupApiKeyBox" VerticalAlignment="Center" />
+                                <TextBox x:Name="CleanupApiKeyTextBox" VerticalAlignment="Center" Visibility="Collapsed"/>
+                                <CheckBox Grid.Column="1" x:Name="ShowCleanupApiKeyCheckBox" Content="Show" VerticalAlignment="Center" Margin="5,0,0,0" Checked="ShowCleanupApiKeyCheckBox_Checked" Unchecked="ShowCleanupApiKeyCheckBox_Unchecked"/>
+                            </Grid>
+                            <Label Grid.Row="2" Grid.Column="0" Content="Cloud Model:" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="2" Grid.Column="1" x:Name="CleanupModelTextBox" Margin="5"/>
+                            <!-- Local -->
+                            <Label Grid.Row="3" Grid.Column="0" Content="Local Host:" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="3" Grid.Column="1" x:Name="CleanupLocalHostTextBox" Margin="5" ToolTip="Include protocol and port, e.g., http://localhost:1234"/>
+                            <Label Grid.Row="4" Grid.Column="0" Content="Local Path:" VerticalAlignment="Center"/>
+                            <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal" Margin="5">
+                                <TextBox x:Name="CleanupLocalPathTextBox" Width="280" ToolTip="Must start with / e.g., /v1/chat/completions"/>
+                                <Button x:Name="CleanupTestButton" Content="Test Connection" Width="120" Margin="10,0,0,0" Click="CleanupTestButton_Click"/>
+                            </StackPanel>
+                        </Grid>
+                    </GroupBox>
+                    <GroupBox Header="Prompt">
+                        <TextBox x:Name="CleanupPromptTextBox" Margin="10" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Height="180"/>
+                    </GroupBox>
+                </StackPanel>
             </TabItem>
 
              <!-- Summarize Settings Tab -->
             <TabItem Header="Summarize">
-                <Grid Margin="10">
-                     <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-
-                    <!-- Summarize API Key -->
-                    <Label Grid.Row="0" Grid.Column="0" Content="OpenAI API Key (Summarize):" VerticalAlignment="Center"/>
-                     <Grid Grid.Row="0" Grid.Column="1" Margin="5">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <PasswordBox x:Name="SummarizeApiKeyBox" VerticalAlignment="Center" />
-                        <TextBox x:Name="SummarizeApiKeyTextBox" VerticalAlignment="Center" Visibility="Collapsed"/>
-                        <CheckBox Grid.Column="1" x:Name="ShowSummarizeApiKeyCheckBox" Content="Show" VerticalAlignment="Center" Margin="5,0,0,0" Checked="ShowSummarizeApiKeyCheckBox_Checked" Unchecked="ShowSummarizeApiKeyCheckBox_Unchecked"/>
-                    </Grid>
-
-                    <!-- Summarize Model (free text) -->
-                    <Label Grid.Row="1" Grid.Column="0" Content="Model:" VerticalAlignment="Center"/>
-                    <TextBox Grid.Row="1" Grid.Column="1" x:Name="SummarizeModelTextBox" VerticalAlignment="Center" Margin="5" ToolTip="Enter model ID per provider; free-text to avoid deprecations."/>
-                    <Button Grid.Row="1" Grid.Column="2" x:Name="SummarizeListModelsButton" Content="List Models" Width="95" Margin="5" Click="SummarizeListModelsButton_Click"/>
-
-                    <!-- Summarize Prompt -->
-                    <Label Grid.Row="2" Grid.Column="0" Content="Prompt:" VerticalAlignment="Top" Margin="0,5,0,0"/>
-                    <TextBox Grid.Row="2" Grid.Column="1" x:Name="SummarizePromptTextBox" VerticalAlignment="Stretch" Margin="5" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Height="180"/>
-
-                </Grid>
+                <StackPanel Margin="10" Orientation="Vertical">
+                    <GroupBox Header="Summarize" Margin="0,0,0,10">
+                        <Grid Margin="10,5,10,10">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Label Grid.Row="0" Grid.Column="0" Content="Mode:" VerticalAlignment="Center"/>
+                            <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Margin="5">
+                                <RadioButton x:Name="SummarizeCloudRadio" Content="Cloud" GroupName="SummarizeMode" Margin="0,0,15,0" Checked="SummarizeModeRadio_Checked"/>
+                                <RadioButton x:Name="SummarizeLocalRadio" Content="Local" GroupName="SummarizeMode" Checked="SummarizeModeRadio_Checked"/>
+                            </StackPanel>
+                            <!-- Cloud -->
+                            <Label Grid.Row="1" Grid.Column="0" Content="OpenAI API Key:" VerticalAlignment="Center"/>
+                            <Grid Grid.Row="1" Grid.Column="1" Margin="5">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <PasswordBox x:Name="SummarizeApiKeyBox" VerticalAlignment="Center" />
+                                <TextBox x:Name="SummarizeApiKeyTextBox" VerticalAlignment="Center" Visibility="Collapsed"/>
+                                <CheckBox Grid.Column="1" x:Name="ShowSummarizeApiKeyCheckBox" Content="Show" VerticalAlignment="Center" Margin="5,0,0,0" Checked="ShowSummarizeApiKeyCheckBox_Checked" Unchecked="ShowSummarizeApiKeyCheckBox_Unchecked"/>
+                            </Grid>
+                            <Label Grid.Row="2" Grid.Column="0" Content="Cloud Model:" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="2" Grid.Column="1" x:Name="SummarizeModelTextBox" Margin="5"/>
+                            <!-- Local -->
+                            <Label Grid.Row="3" Grid.Column="0" Content="Local Host:" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="3" Grid.Column="1" x:Name="SummarizeLocalHostTextBox" Margin="5" ToolTip="Include protocol and port, e.g., http://localhost:1234"/>
+                            <Label Grid.Row="4" Grid.Column="0" Content="Local Path:" VerticalAlignment="Center"/>
+                            <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal" Margin="5">
+                                <TextBox x:Name="SummarizeLocalPathTextBox" Width="280" ToolTip="Must start with / e.g., /v1/chat/completions"/>
+                                <Button x:Name="SummarizeTestButton" Content="Test Connection" Width="120" Margin="10,0,0,0" Click="SummarizeTestButton_Click"/>
+                            </StackPanel>
+                        </Grid>
+                    </GroupBox>
+                    <GroupBox Header="Prompt">
+                        <TextBox x:Name="SummarizePromptTextBox" Margin="10" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Height="180"/>
+                    </GroupBox>
+                </StackPanel>
             </TabItem>
 
             <!-- About Tab -->
