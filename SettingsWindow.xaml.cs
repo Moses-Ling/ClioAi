@@ -576,25 +576,43 @@ namespace AudioTranscriptionApp
         {
             try
             {
-                // Assuming LICENSE file is in the same directory as the executable
                 string baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
                 string licenseFilePath = Path.Combine(baseDirectory, "LICENSE");
 
-                if (File.Exists(licenseFilePath))
-                {
-                    Logger.Info($"Opening LICENSE file: {licenseFilePath}");
-                    var psi = new ProcessStartInfo(licenseFilePath){ UseShellExecute = true }; Process.Start(psi);
-                }
-                else
+                if (!File.Exists(licenseFilePath))
                 {
                     Logger.Warning($"LICENSE file not found at: {licenseFilePath}");
                     System.Windows.MessageBox.Show("LICENSE file not found.", "File Not Found", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
                 }
+
+                string licenseText = File.ReadAllText(licenseFilePath);
+                var textBlock = new System.Windows.Controls.TextBox
+                {
+                    Text = licenseText,
+                    IsReadOnly = true,
+                    TextWrapping = TextWrapping.Wrap,
+                    VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                    HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+                    Margin = new Thickness(10),
+                    FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+                };
+
+                var dialog = new Window
+                {
+                    Title = "License",
+                    Owner = this,
+                    Width = 700,
+                    Height = 600,
+                    Content = textBlock,
+                    WindowStartupLocation = WindowStartupLocation.CenterOwner
+                };
+                dialog.ShowDialog();
             }
             catch (Exception ex)
             {
-                Logger.Error("Failed to open LICENSE file.", ex);
-                System.Windows.MessageBox.Show($"Could not open LICENSE file: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                Logger.Error("Failed to display LICENSE file.", ex);
+                System.Windows.MessageBox.Show($"Could not display LICENSE file: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
         // --- End About Tab Logic ---

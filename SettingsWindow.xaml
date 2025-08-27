@@ -54,8 +54,8 @@
                             <TextBox Grid.Row="2" Grid.Column="1" x:Name="TranscriptionLocalHostTextBox" Margin="5" ToolTip="Include protocol and port, e.g., http://localhost:5042"/>
                             <Label Grid.Row="3" Grid.Column="0" Content="Local Path:" VerticalAlignment="Center"/>
                             <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" Margin="5">
-                                <TextBox x:Name="TranscriptionLocalPathTextBox" Width="280" ToolTip="Must start with / e.g., /v1/audio/transcriptions"/>
-                                <Button x:Name="TranscriptionTestButton" Content="Test" Width="120" Margin="10,0,0,0" Click="TranscriptionTestButton_Click"/>
+                                <TextBox x:Name="TranscriptionLocalPathTextBox" Width="220" ToolTip="Must start with / e.g., /v1/audio/transcriptions"/>
+                                <Button x:Name="TranscriptionTestButton" Content="Test" Margin="8,0,0,0" Padding="10,2" MinWidth="50" Click="TranscriptionTestButton_Click"/>
                             </StackPanel>
                             <Label Grid.Row="4" Grid.Column="0" Content="Local Model:" VerticalAlignment="Center"/>
                             <TextBox Grid.Row="4" Grid.Column="1" x:Name="TranscriptionLocalModelTextBox" Margin="5"/>
@@ -156,8 +156,8 @@
                             <TextBox Grid.Row="3" Grid.Column="1" x:Name="CleanupLocalHostTextBox" Margin="5" ToolTip="Include protocol and port, e.g., http://localhost:1234"/>
                             <Label Grid.Row="4" Grid.Column="0" Content="Local Path:" VerticalAlignment="Center"/>
                             <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal" Margin="5">
-                                <TextBox x:Name="CleanupLocalPathTextBox" Width="280" ToolTip="Must start with / e.g., /v1/chat/completions"/>
-                                <Button x:Name="CleanupTestButton" Content="Test" Width="120" Margin="10,0,0,0" Click="CleanupTestButton_Click"/>
+                                <TextBox x:Name="CleanupLocalPathTextBox" Width="220" ToolTip="Must start with / e.g., /v1/chat/completions"/>
+                                <Button x:Name="CleanupTestButton" Content="Test" Margin="8,0,0,0" Padding="10,2" MinWidth="50" Click="CleanupTestButton_Click"/>
                             </StackPanel>
                         </Grid>
                     </GroupBox>
@@ -207,8 +207,8 @@
                             <TextBox Grid.Row="3" Grid.Column="1" x:Name="SummarizeLocalHostTextBox" Margin="5" ToolTip="Include protocol and port, e.g., http://localhost:1234"/>
                             <Label Grid.Row="4" Grid.Column="0" Content="Local Path:" VerticalAlignment="Center"/>
                             <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal" Margin="5">
-                                <TextBox x:Name="SummarizeLocalPathTextBox" Width="280" ToolTip="Must start with / e.g., /v1/chat/completions"/>
-                                <Button x:Name="SummarizeTestButton" Content="Test" Width="120" Margin="10,0,0,0" Click="SummarizeTestButton_Click"/>
+                                <TextBox x:Name="SummarizeLocalPathTextBox" Width="220" ToolTip="Must start with / e.g., /v1/chat/completions"/>
+                                <Button x:Name="SummarizeTestButton" Content="Test" Margin="8,0,0,0" Padding="10,2" MinWidth="50" Click="SummarizeTestButton_Click"/>
                             </StackPanel>
                         </Grid>
                     </GroupBox>
