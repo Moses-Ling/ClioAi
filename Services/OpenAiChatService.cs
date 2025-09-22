@@ -17,7 +17,7 @@ namespace AudioTranscriptionApp.Services
         // Simple internal classes for request/response structure
         private class ChatRequest
         {
-            [JsonProperty("model")]
+            [JsonProperty("model", NullValueHandling = NullValueHandling.Ignore)]
             public string Model { get; set; }
 
             [JsonProperty("messages")]
@@ -131,7 +131,8 @@ namespace AudioTranscriptionApp.Services
 
             var requestBody = new ChatRequest
             {
-                Model = model,
+                // For local servers that don't support model swapping, omit the model
+                Model = useLocal ? null : model,
                 Messages = new List<ChatMessage>
                 {
                     new ChatMessage { Role = "system", Content = systemPrompt },

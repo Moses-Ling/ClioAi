@@ -17,6 +17,44 @@ A WPF desktop application that captures audio from Windows devices and transcrib
 - .NET Framework 4.8
 - OpenAI API key for Whisper transcription
 
+## Build Setup (CLI or VS)
+
+You can build with Visual Studio or from the command line. For CLI builds on .NET Framework 4.8 WPF, MSBuild from Visual Studio Build Tools is required.
+
+Recommended options:
+
+1) Visual Studio 2022 / Developer Command Prompt
+- Open the solution `AudioTranscriptionApp.sln` in VS and Build, or
+- Launch "Developer Command Prompt for VS 2022" and run:
+  - `msbuild AudioTranscriptionApp.sln /t:Build /p:Configuration=Debug`
+
+2) Repo MSBuild Wrapper (no PATH setup required)
+- Use the included wrapper that locates MSBuild automatically:
+  - `scripts\msbuild.cmd AudioTranscriptionApp.sln /t:Build /p:Configuration=Debug`
+- Examples:
+  - Debug: `scripts\msbuild.cmd AudioTranscriptionApp.csproj /t:Clean;Build /p:Configuration=Debug`
+  - Release: `scripts\msbuild.cmd AudioTranscriptionApp.csproj /t:Clean;Build /p:Configuration=Release`
+
+2b) One-liner Build Script
+- Use `scripts\build.cmd` to build the solution quickly:
+  - Default Debug: `scripts\build.cmd`
+  - Release: `scripts\build.cmd Release`
+  - Clean + Build Debug: `scripts\build.cmd Debug Clean`
+
+3) Global Setup (optional, one-time)
+- Install Visual Studio 2022 Build Tools components:
+  - MSBuild, .NET Desktop Build Tools, .NET Framework 4.8 SDK + Targeting Pack.
+- Add to PATH (recommended):
+  - `C:\Program Files\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin` (or `...\amd64`)
+- Or set a global variable for scripts that respect it:
+  - `MSBUILD_EXE_PATH=C:\Program Files\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin\MSBuild.exe`
+- Open a new terminal after changing PATH/environment variables.
+
+## Test
+
+- Run tests (requires .NET SDK and .NET Framework 4.8 targeting pack):
+  - `dotnet test tests/AudioTranscriptionApp.Tests.csproj`
+
 ## Dependencies
 
 - NAudio 2.2.1 for audio processing
@@ -32,6 +70,12 @@ A WPF desktop application that captures audio from Windows devices and transcrib
 5. Enter your OpenAI API key in the application
 6. Select an audio device from the dropdown
 7. Click "Start Recording" to begin capturing and transcribing audio
+
+## Troubleshooting
+
+- `msbuild` not found: use `scripts\msbuild.cmd ...` or open the VS Developer Command Prompt.
+- Missing reference assemblies (net48): ensure the .NET Framework 4.8 SDK and Targeting Pack are installed via VS Build Tools.
+- After installing Build Tools or updating PATH, restart your terminal.
 
 ## Settings (v1.4)
 
