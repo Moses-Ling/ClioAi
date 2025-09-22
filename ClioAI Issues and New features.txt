@@ -1,0 +1,43 @@
+ClioAI Issues and New features
+
+Issues
+1. The timeout for the transcribe request is 10s, which is too short sometimes, causing a timeout error.
+2. Check the audio setting with the speaker; it gets an error when set to the speaker set on program startup.
+3. Local CleanUp and Summarize was sending the remote model name. 
+4. Logo on the about tab needs to be changed to a high-res image or maybe SVG 
+
+New Feature 
+1. Implement a timestamp for the audio packets and improve the buffering scheme. 
+2. Set audio chunk size to fixed 30 sec for local transcribe mode. 
+3. Add text box for local model name in "Cleanup" and "Summarize" tabs.
+4. For testing, enable ways to load text into the text window to send it to the model without having to transcribe. 
+5. Integrate both WhisperAPI and LlamaAPI servers to ClioAI. 
+   Whisper will load when "Start" is clicked. 
+   Recording can start with a slight delay. (few sec.)
+   Add a Whisper signaling indication that the light turns green call SST Speech To Text.  (red not loaded)
+   Detect when Whisper is loaded via the Windows System API or /V1/Status endpoint.
+   When the first chunk of audio is ready to send (30 sec) and Whisper is still not loaded, Error out and discard the audio chunk. 
+   When "Stop" is clicked, immediately end the current chunk and send for transcribing. 
+   Only unload Whisper until the last audio chunk in the buffer completes its transcription.
+   Add a Llama signaling indicator (LLM) just like Whisper Green/Red
+   Detect when Llama is loaded via the Windows System API or /V1/Status endpoint.
+   When "CleanUp" or "Summarize" is clicked, determine if LLM model is loaded, send a request, else start Llama to load the LLM.  
+   While Llama is starting, show a progress bar as feedback for the user. Message "Loading model {model name}"
+   When the request is sent, show a progress bar and message "This process could take a few minutes, please be patient. " 
+6. Add ClioAi logo to the footer of the HTML output before the ClioAi 
+ 
+ 
+WhisperAPI
+Issues
+1. Startup lag on the first request. 
+
+New Feature
+1. Implement time stamp to match ClioAI 
+
+LlamaAPI
+Issues
+1. Model name mismatch from ClioAI - Fix by ignoring the model name now, since hot swap is not implemented currently. 
+
+New Features
+1. Hot swapping model 
+2. Testing exe where a text file can be send to the model to check the context window

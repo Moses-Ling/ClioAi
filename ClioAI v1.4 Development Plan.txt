@@ -1,0 +1,256 @@
+# ClioAI v1.4 Development Plan - AI Coding Agent
+
+## Project Overview
+
+**Objective**: Implement Cloud/Local switching functionality for transcription, cleanup, and summarization services, along with an optional export footer feature for ClioAI application.
+
+**Key Goals**:
+- Enable users to switch between Cloud (OpenAI) and Local services
+- Maintain backward compatibility
+- Minimize backend changes
+- Add promotional export footer functionality
+
+## Technical Scope
+
+### Core Features
+1. **Cloud/Local Service Switching**
+   - Transcription (Whisper) service routing
+   - Cleanup service routing  
+   - Summarization service routing
+   - Independent configuration per service
+
+2. **Export Footer Enhancement**
+   - Optional footer appending to TXT/MD/HTML exports
+   - Dynamic model name substitution
+
+3. **UI/UX Improvements**
+   - Mode selection controls in appropriate tabs
+   - Conditional field enabling/disabling
+   - Service connectivity testing
+
+## Architecture Requirements
+
+### Settings Schema Extensions
+```json
+{
+  "Export": {
+    "AppendFooter": "boolean"
+  },
+  "Whisper": {
+    "UseLocalWhisper": "boolean",
+    "WhisperHost": "string (http://localhost default)",
+    "WhisperPort": "integer (5042 default)",
+    "WhisperModelsEndpointPath": "string (/v1/audio/transcriptions default)",
+    "WhisperModel": "string (whisper-base default)"
+  },
+  "Cleanup": {
+    "UseLocalCleanup": "boolean",
+    "CleanupHost": "string (http://localhost default)",
+    "CleanupPort": "integer (1234 default)",
+    "CleanupModelsEndpointPath": "string (/v1/chat/completions default)",
+    "CleanupModel": "string (granite-3.1-8b-instruct)"
+
+  },
+  "Summarize": {
+    "UseLocalSummarize": "boolean", 
+    "SummarizeHost": "string (http://localhost default)",
+    "SummarizePort": "integer (1234 default)",
+    "SummarizeModelsEndpointPath": "string (/v1/chat/completions default)",
+    "SummarizeModel": "string (granite-3.1-8b-instruct)"
+
+  }
+}
+```
+
+### Service Routing Logic
+- **TranscriptionService**: Route between `https://api.openai.com` (Cloud) and `http(s)://{host}:{port}/{endpoint path}` (Local)
+			    Configure base URL only for (local), and authentication headers are not required for (Local)
+- **OpenAiChatService**: Route between `https://api.openai.com` (Cloud) and `http(s)://{host}:{port}/{endpoint path}` (Local)
+			 Configure base URL only for (local), and authentication headers are not required for (Local)
+- **Export Service**: Conditionally append footer with model substitution
+
+## Phase-Based Implementation Plan
+
+### Phase 1: UI Framework & Settings (Sprint 1)
+**Duration**: 5-7 days
+
+**Tasks**:
+0. **Revision Control**
+    - Create a new branch from "master" name it "V1.4.1"
+    - Check out "V1.4.1" and start this phase as "V1.4.1"
+
+1. **Settings UI Components**
+   - Create radio button controls for Cloud/Local mode selection
+   - Implement conditional field visibility logic (gray out unselected mode)
+   - Add host, port, endpoint path, and model input fields with validation
+   - Design test connection buttons for (Local) to ensure the setting is correct. Sending a POST to the endpoint path "v1/models" will return a list of models available in the "id" in the data JSON. 
+
+2. **Tab Layout Updates**
+   - **General Tab**: Add Transcription mode controls (add Transcription, and Export section)
+   - **Clean Up Tab**: Add cleanup service mode controls  
+   - **Summarize Tab**: Add summarization mode controls
+   - **Export Section**: Add footer toggle control (in General Tab)
+
+3. **Settings Persistence**
+   - Extend settings schema with new configuration keys
+   - Implement save functionality for new settings (use existing) 
+   - Add default value initialization (default value shown in schema)
+
+**Acceptance Criteria**:
+- [ ] Mode switching toggles Cloud/Local field availability
+- [ ] Settings persist across application restarts
+- [ ] UI shows appropriate fields based on selected mode
+- [ ] Input validation prevents invalid host/port combinations
+
+### Phase 2: Service Architecture (Sprint 2)  
+**Duration**: 7-10 days
+
+**Tasks**:
+0. **Revision Control**
+    - Create a new branch from "V1.4.1" name it "V1.4.2"
+    - Check out "V1.4.2" and start this phase as "V1.4.2"
+
+1. **TranscriptionService Enhancement**
+   - Leave the existing (Cloud) URL logic alone 
+   - Implement base URL switching logic between (Cloud/Local)
+   - Add authentication header management (No API key for local)
+   - Configure model parameter (local) routing, (Cloud) model configuration stays the same (NO change). 
+   - Ensure backward compatibility
+
+2. **Chat Service Routing**
+   - Leave the existing (Cloud) URL logic alone
+   - Add OpenAiChatService for Local service
+   - Implement base URL switching logic between (Cloud/Local)
+   - Add authentication header management (No API key for local)
+   - Configure model parameter (local) routing, (Cloud) model configuration stays the same (NO change). 
+   - Add changes to both cleanup/summarize service, since both use the same chat completion endpoint path
+   - Maintain existing API contracts (Cloud) 
+
+3. **Configuration Management**
+   - Create service factory pattern for Cloud/Local instances
+   - Implement configuration validation
+   - Add error handling for invalid configurations
+
+**Acceptance Criteria**:
+- [ ] Services correctly route to Cloud or Local endpoints
+- [ ] Authentication headers set appropriately per mode
+- [ ] Model parameters passed correctly to Local services
+- [ ] Existing functionality remains unaffected
+
+### Phase 3: Connectivity & Testing (Sprint 3)
+**Duration**: 3-5 days
+
+**Tasks**:
+0. **Revision Control**
+    - Create a new branch from "V1.4.2" name it "V1.4.3"
+    - Check out "V1.4.3" and start this phase as "V1.4.3"
+
+1. **Connection Testing Framework**
+   - Implement GET requests to `/v1/models` endpoint to get a list of models available from the server. 
+   - Use the return JSON "id" to form a list of models available for (local) mode and implement the same selection method as (Cloud) 
+ 
+   - Create success/error dialog components
+   - Add timeout and error handling logic
+   - Design user feedback mechanisms
+
+2. **Local Service Integration**
+   - Test Local Whisper connectivity via models endpoint
+   - Test Local Cleanup service connectivity
+   - Test Local Summarize service connectivity
+   - Implement model name auto-population from API responses
+
+3. **Error Handling & Validation**
+   - Add network connectivity error handling
+   - Implement service availability validation
+   - Create user-friendly error messages
+   - Add retry mechanisms for failed connections
+
+**Acceptance Criteria**:
+- [ ] Test buttons provide clear success/failure feedback
+- [ ] Model names auto-populate from Local service responses
+- [ ] Error messages guide users toward resolution
+- [ ] Connection timeouts handled gracefully
+
+### Phase 4: Export Footer Feature (Sprint 4)
+**Duration**: 2-3 days
+
+**Tasks**:
+0. **Revision Control**
+    - Create a new branch from "V1.4.3" name it "V1.4.4"
+    - Check out "V1.4.4" and start this phase as "V1.4.4"
+
+1. **Footer Template System**
+   - Create configurable footer template
+   - Implement model name substitution logic
+   - Design footer formatting for TXT/MD/HTML formats
+
+2. **Export Integration**
+   - Modify export routines to conditionally append footer
+   - Ensure footer appears only when enabled
+   - Test across all export formats (TXT/MD/HTML)
+
+3. **Footer Content Management**
+   - Implement dynamic model name detection. The model name can be found in the model variables in the settings. 
+   - Add ClioAI branding and URL http://ClioAi.app
+   - Ensure proper formatting across export types
+
+**Acceptance Criteria**:
+- [ ] Footer appends only when setting enabled
+- [ ] Model name correctly substituted in footer text
+- [ ] Footer formatting appropriate for each export format
+- [ ] Toggle setting controls footer inclusion
+
+## Quality Assurance Plan
+
+### Testing Strategy
+1. **Unit Tests**
+   - Service routing logic validation
+   - Settings persistence testing
+   - UI component behavior verification
+   - Export footer functionality testing
+
+2. **Integration Tests**
+   - Cloud service connectivity testing
+   - Local service mock server testing
+   - End-to-end workflow validation
+   - Cross-platform compatibility testing
+
+3. **User Acceptance Testing**
+   - Mode switching user experience
+   - Service configuration workflows  
+   - Export functionality with/without footer
+   - Error handling user experience
+
+### Performance Considerations
+- Minimize API calls during configuration testing
+- Implement connection pooling for Local services
+- Cache model lists to reduce repeated API calls
+- Optimize UI responsiveness during service switching
+
+## Success Metrics
+
+### Functional Metrics
+- [ ] 100% backward compatibility maintained
+- [ ] All three services (Transcription, Cleanup, Summarize) support Cloud/Local switching
+- [ ] Export footer functionality working across all formats
+- [ ] Zero critical bugs in production release
+
+
+## Deployment Strategy
+
+### Pre-Release Checklist
+- [ ] All unit tests passing
+- [ ] Integration tests validated
+- [ ] Performance benchmarks met
+- [ ] Documentation updated
+- [ ] User acceptance testing completed
+
+### Maintenance Plan
+- Regular compatibility testing with OpenAI API updates
+- Local service integration documentation updates
+- User feedback incorporation for UX improvements
+- Performance monitoring and optimization
+
+---
+
+*This development plan provides a structured approach to implementing ClioAI v1.4 features while maintaining code quality, user experience, and system reliability.*
