@@ -480,6 +480,7 @@ namespace AudioTranscriptionApp
                     }
                     else
                     {
+                        TranscriptionLocalModelTextBox.Text = "Server not found";
                         System.Windows.MessageBox.Show("Server not found", "Local Test", MessageBoxButton.OK, MessageBoxImage.Warning);
                         return;
                     }
@@ -488,11 +489,13 @@ namespace AudioTranscriptionApp
             catch (System.Threading.Tasks.TaskCanceledException)
             {
                 Logger.Warning("Local config test failed: timed out after 5s");
+                TranscriptionLocalModelTextBox.Text = "Server not found";
                 System.Windows.MessageBox.Show("Server not found", "Local Test", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
             catch (Exception ex)
             {
                 Logger.Error("Local config test error", ex);
+                TranscriptionLocalModelTextBox.Text = "Server not found";
                 System.Windows.MessageBox.Show("Server not found", "Local Test", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
