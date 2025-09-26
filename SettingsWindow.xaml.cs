@@ -7,6 +7,7 @@ using System.Reflection; // For Assembly version
 using System.Diagnostics; // For Process.Start
 using System.Collections.ObjectModel; // For ObservableCollection
 using System.Linq; // For LINQ filtering
+using Newtonsoft.Json.Linq; // For parsing /config response
 using AudioTranscriptionApp.Models; // For AudioDeviceModel
 using AudioTranscriptionApp.Services; // For AudioCaptureService
 
@@ -379,7 +380,7 @@ namespace AudioTranscriptionApp
         // Local Test Buttons
         private async void TranscriptionTestButton_Click(object sender, RoutedEventArgs e)
         {
-            await TestLocalEndpointAsync(TranscriptionLocalHostTextBox.Text);
+            await TestTranscriptionLocalAndPopulateModelAsync(TranscriptionLocalHostTextBox.Text);
         }
 
         private async void CleanupTestButton_Click(object sender, RoutedEventArgs e)
@@ -429,6 +430,70 @@ namespace AudioTranscriptionApp
             {
                 Logger.Error("Local test error", ex);
                 System.Windows.MessageBox.Show($"Connection failed: {ex.Message}", "Local Test", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private async System.Threading.Tasks.Task TestTranscriptionLocalAndPopulateModelAsync(string host)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(host))
+                {
+                    System.Windows.MessageBox.Show("Enter Local Host including protocol and port, e.g., http://localhost:5042", "Missing Host", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+                string url = host.Trim().TrimEnd('/') + "/config";
+                Logger.Info($"Testing local transcription server config: {url}");
+                using (var client = new System.Net.Http.HttpClient())
+                {
+                    client.Timeout = TimeSpan.FromSeconds(5);
+                    var response = await client.GetAsync(url);
+                    Logger.Info($"Local config response: {(int)response.StatusCode} {response.StatusCode}");
+                    if (response.IsSuccessStatusCode)
+                    {
+                        string content = await response.Content.ReadAsStringAsync();
+                        try
+                        {
+                            var jo = JObject.Parse(content);
+                            // Try both PascalCase and camelCase paths
+                            string modelName =
+                                (string)(jo.SelectToken("Whisper.ModelName") ?? jo.SelectToken("whisper.modelName")) ?? string.Empty;
+                            if (!string.IsNullOrWhiteSpace(modelName))
+                            {
+                                TranscriptionLocalModelTextBox.Text = modelName;
+                                System.Windows.MessageBox.Show("Connection successful.", "Local Test", MessageBoxButton.OK, MessageBoxImage.Information);
+                                return;
+                            }
+                            else
+                            {
+                                Logger.Warning("/config response did not include a recognizable Whisper model name.");
+                                System.Windows.MessageBox.Show("Connection successful, but model not reported.", "Local Test", MessageBoxButton.OK, MessageBoxImage.Warning);
+                                return;
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Warning($"Failed to parse /config JSON: {ex.Message}");
+                            System.Windows.MessageBox.Show("Connection successful, but invalid config format.", "Local Test", MessageBoxButton.OK, MessageBoxImage.Warning);
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        System.Windows.MessageBox.Show("Server not found", "Local Test", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
+                }
+            }
+            catch (System.Threading.Tasks.TaskCanceledException)
+            {
+                Logger.Warning("Local config test failed: timed out after 5s");
+                System.Windows.MessageBox.Show("Server not found", "Local Test", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("Local config test error", ex);
+                System.Windows.MessageBox.Show("Server not found", "Local Test", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
 
