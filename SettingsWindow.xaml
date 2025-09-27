@@ -58,7 +58,7 @@
                                 <Button x:Name="TranscriptionTestButton" Content="Test" Margin="8,0,0,0" Padding="10,2" MinWidth="50" Click="TranscriptionTestButton_Click"/>
                             </StackPanel>
                             <Label Grid.Row="4" Grid.Column="0" Content="Local Model:" VerticalAlignment="Center"/>
-                            <TextBox Grid.Row="4" Grid.Column="1" x:Name="TranscriptionLocalModelTextBox" Margin="5"/>
+                            <TextBox Grid.Row="4" Grid.Column="1" x:Name="TranscriptionLocalModelTextBox" Margin="5" IsReadOnly="True" ToolTip="Populated from local server /config via Test"/>
                         </Grid>
                     </GroupBox>
                     <GroupBox Header="Audio">
