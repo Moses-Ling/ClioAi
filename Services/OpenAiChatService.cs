@@ -119,7 +119,7 @@ namespace AudioTranscriptionApp.Services
 
         private async Task<string> SendChatAsync(string systemPrompt, string userPrompt, string model, bool useLocal, string localHost, string localPath)
         {
-            Logger.Info($"Attempting chat completion with model: {model} (useLocal={useLocal})");
+            Logger.Info($"Attempting chat completion (useLocal={useLocal}), model='{(useLocal ? "<omitted>" : model)}', systemLen={systemPrompt?.Length ?? 0}, userLen={userPrompt?.Length ?? 0}, host='{(useLocal ? localHost : null)}', path='{(useLocal ? localPath : null)}'");
             if (!useLocal)
             {
                 if (string.IsNullOrEmpty(_apiKey))
@@ -139,6 +139,7 @@ namespace AudioTranscriptionApp.Services
                     new ChatMessage { Role = "user", Content = userPrompt }
                 }
             };
+            try { Logger.Info($"Chat request JSON size: {Encoding.UTF8.GetByteCount(JsonConvert.SerializeObject(requestBody))} bytes"); } catch { }
 
             int currentRetry = 0;
             int delayMs = InitialDelayMs;

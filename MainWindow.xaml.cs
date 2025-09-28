@@ -479,6 +479,11 @@ namespace AudioTranscriptionApp
                 _openAiChatService.UpdateApiKey(decryptedSummarizeKey);
             }
 
+            bool summarizeUseLocal = Properties.Settings.Default.SummarizeUseLocal;
+            string summarizeLocalHost = Properties.Settings.Default.SummarizeLocalHost;
+            string summarizeLocalPath = Properties.Settings.Default.SummarizeLocalPath;
+            Logger.Info($"Summarize input length={textToSummarize?.Length ?? 0}, useLocal={summarizeUseLocal}, model='{summarizeModel}', host='{(summarizeUseLocal ? summarizeLocalHost : null)}', path='{(summarizeUseLocal ? summarizeLocalPath : null)}'");
+
             SetUiBusyState(true, "Summarizing text...");
 
             try
