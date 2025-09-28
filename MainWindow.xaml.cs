@@ -24,6 +24,7 @@ namespace AudioTranscriptionApp
         private OpenAiChatService _openAiChatService;
         private bool _isRecording = false;
         private string _lastSaveDirectory = null;
+        private string _lastOpenDialogDirectory = null; // remembers last opened folder for this session
         private int _audioTooShortWarningCount = 0;
 
         public MainWindow()
@@ -125,19 +126,26 @@ namespace AudioTranscriptionApp
                     CheckFileExists = true
                 };
 
-                // Prefer Default Save Path from settings, then last session folder, else Documents
-                string defaultSave = Properties.Settings.Default.DefaultSavePath;
-                if (!string.IsNullOrEmpty(defaultSave) && Directory.Exists(defaultSave))
+                // Prefer last opened folder in this session; else Default Save Path; else last session folder; else Documents
+                if (!string.IsNullOrEmpty(_lastOpenDialogDirectory) && Directory.Exists(_lastOpenDialogDirectory))
                 {
-                    ofd.InitialDirectory = defaultSave;
-                }
-                else if (!string.IsNullOrEmpty(_lastSaveDirectory) && Directory.Exists(_lastSaveDirectory))
-                {
-                    ofd.InitialDirectory = _lastSaveDirectory;
+                    ofd.InitialDirectory = _lastOpenDialogDirectory;
                 }
                 else
                 {
-                    ofd.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+                    string defaultSave = Properties.Settings.Default.DefaultSavePath;
+                    if (!string.IsNullOrEmpty(defaultSave) && Directory.Exists(defaultSave))
+                    {
+                        ofd.InitialDirectory = defaultSave;
+                    }
+                    else if (!string.IsNullOrEmpty(_lastSaveDirectory) && Directory.Exists(_lastSaveDirectory))
+                    {
+                        ofd.InitialDirectory = _lastSaveDirectory;
+                    }
+                    else
+                    {
+                        ofd.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+                    }
                 }
 
                 bool? result = ofd.ShowDialog(this);
@@ -146,6 +154,7 @@ namespace AudioTranscriptionApp
                     Logger.Info($"Loading text from file: {ofd.FileName}");
                     string text = File.ReadAllText(ofd.FileName, System.Text.Encoding.UTF8);
                     TranscriptionTextBox.Text = text ?? string.Empty;
+                    try { _lastOpenDialogDirectory = System.IO.Path.GetDirectoryName(ofd.FileName); } catch { }
                     StatusTextBlock.Text = "Text loaded from file.";
                     // Recompute UI state so Clean Up/Summarize are available
                     SetUiBusyState(false);
