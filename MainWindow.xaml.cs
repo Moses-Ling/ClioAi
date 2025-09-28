@@ -13,7 +13,6 @@ using System.Windows.Controls;
 using Markdig;
 using System.Diagnostics;
 using System.Windows.Media;
-using Microsoft.Win32; // OpenFileDialog
 
 
 namespace AudioTranscriptionApp
@@ -117,16 +116,22 @@ namespace AudioTranscriptionApp
         {
             try
             {
-                var ofd = new OpenFileDialog
+                var ofd = new Microsoft.Win32.OpenFileDialog
                 {
                     Title = "Load Text File",
-                    Filter = "Text files (*.txt;*.md;*.log;*.json;*.html)|*.txt;*.md;*.log;*.json;*.html|All files (*.*)|*.*",
+                    Filter = "Text files (*.txt;*.md)|*.txt;*.md",
+                    DefaultExt = "txt",
                     Multiselect = false,
                     CheckFileExists = true
                 };
 
-                // Prefer last save directory if available
-                if (!string.IsNullOrEmpty(_lastSaveDirectory) && Directory.Exists(_lastSaveDirectory))
+                // Prefer Default Save Path from settings, then last session folder, else Documents
+                string defaultSave = Properties.Settings.Default.DefaultSavePath;
+                if (!string.IsNullOrEmpty(defaultSave) && Directory.Exists(defaultSave))
+                {
+                    ofd.InitialDirectory = defaultSave;
+                }
+                else if (!string.IsNullOrEmpty(_lastSaveDirectory) && Directory.Exists(_lastSaveDirectory))
                 {
                     ofd.InitialDirectory = _lastSaveDirectory;
                 }
