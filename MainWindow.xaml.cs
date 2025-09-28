@@ -13,6 +13,7 @@ using System.Windows.Controls;
 using Markdig;
 using System.Diagnostics;
 using System.Windows.Media;
+using Microsoft.Win32; // OpenFileDialog
 
 
 namespace AudioTranscriptionApp
@@ -109,6 +110,47 @@ namespace AudioTranscriptionApp
 
             TranscriptionTextBox.Text = instructions;
             Logger.Info("Instructions displayed.");
+        }
+
+        // Context menu: Load file into transcription area
+        private void TranscriptionLoadFile_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var ofd = new OpenFileDialog
+                {
+                    Title = "Load Text File",
+                    Filter = "Text files (*.txt;*.md;*.log;*.json;*.html)|*.txt;*.md;*.log;*.json;*.html|All files (*.*)|*.*",
+                    Multiselect = false,
+                    CheckFileExists = true
+                };
+
+                // Prefer last save directory if available
+                if (!string.IsNullOrEmpty(_lastSaveDirectory) && Directory.Exists(_lastSaveDirectory))
+                {
+                    ofd.InitialDirectory = _lastSaveDirectory;
+                }
+                else
+                {
+                    ofd.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+                }
+
+                bool? result = ofd.ShowDialog(this);
+                if (result == true)
+                {
+                    Logger.Info($"Loading text from file: {ofd.FileName}");
+                    string text = File.ReadAllText(ofd.FileName, System.Text.Encoding.UTF8);
+                    TranscriptionTextBox.Text = text ?? string.Empty;
+                    StatusTextBlock.Text = "Text loaded from file.";
+                    // Recompute UI state so Clean Up/Summarize are available
+                    SetUiBusyState(false);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("Failed to load text file.", ex);
+                System.Windows.MessageBox.Show($"Failed to load file: {ex.Message}", "Load Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         // --- Phase 3 Event Handlers ---
