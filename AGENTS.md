@@ -9,6 +9,7 @@
 - Assets: icons/images in repo root. Solution: `AudioTranscriptionApp.sln`.
 
 ## Build, Test, and Development Commands
+- Shell preference: Use PowerShell for all commands on Windows. When running through the Codex CLI/agent, default to PowerShell rather than Bash.
 - Build (Visual Studio): open `AudioTranscriptionApp.sln`, Restore NuGet, Build.
 - Build (CLI, Developer Command Prompt):
   - `msbuild AudioTranscriptionApp.sln /t:Build /p:Configuration=Debug`

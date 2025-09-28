@@ -18,6 +18,7 @@ namespace AudioTranscriptionApp
     /// </summary>
     public partial class SettingsWindow : Window
     {
+        public event Action SettingsSaved;
         // Properties for device list binding
         public ObservableCollection<AudioDeviceModel> SystemAudioDevices { get; set; }
         public ObservableCollection<AudioDeviceModel> MicrophoneDevices { get; set; }
@@ -173,6 +174,7 @@ namespace AudioTranscriptionApp
             CleanupModelTextBox.Text = Properties.Settings.Default.CleanupModel ?? string.Empty;
             CleanupLocalHostTextBox.Text = Properties.Settings.Default.CleanupLocalHost ?? "http://localhost:1234";
             CleanupLocalPathTextBox.Text = Properties.Settings.Default.CleanupLocalPath ?? "/v1/chat/completions";
+            CleanupLocalModelTextBox.Text = Properties.Settings.Default.CleanupLocalModel ?? "granite-3.1-8b-instruct";
             if (Properties.Settings.Default.CleanupUseLocal)
                 CleanupLocalRadio.IsChecked = true;
             else
@@ -188,6 +190,7 @@ namespace AudioTranscriptionApp
             SummarizePromptTextBox.Text = Properties.Settings.Default.SummarizePrompt ?? string.Empty;
             SummarizeLocalHostTextBox.Text = Properties.Settings.Default.SummarizeLocalHost ?? "http://localhost:1234";
             SummarizeLocalPathTextBox.Text = Properties.Settings.Default.SummarizeLocalPath ?? "/v1/chat/completions";
+            SummarizeLocalModelTextBox.Text = Properties.Settings.Default.SummarizeLocalModel ?? "granite-3.1-8b-instruct";
             if (Properties.Settings.Default.SummarizeUseLocal)
                 SummarizeLocalRadio.IsChecked = true;
             else
@@ -280,6 +283,7 @@ namespace AudioTranscriptionApp
                 Properties.Settings.Default.CleanupUseLocal = CleanupLocalRadio.IsChecked == true;
                 Properties.Settings.Default.CleanupLocalHost = (CleanupLocalHostTextBox.Text ?? string.Empty).Trim();
                 Properties.Settings.Default.CleanupLocalPath = NormalizePath(CleanupLocalPathTextBox.Text);
+                Properties.Settings.Default.CleanupLocalModel = (CleanupLocalModelTextBox.Text ?? string.Empty).Trim();
 
                 // Save Summarize Settings (Get key from visible control)
                 string summarizeKey = ShowSummarizeApiKeyCheckBox.IsChecked == true ? SummarizeApiKeyTextBox.Text : SummarizeApiKeyBox.Password;
@@ -289,6 +293,7 @@ namespace AudioTranscriptionApp
                 Properties.Settings.Default.SummarizeUseLocal = SummarizeLocalRadio.IsChecked == true;
                 Properties.Settings.Default.SummarizeLocalHost = (SummarizeLocalHostTextBox.Text ?? string.Empty).Trim();
                 Properties.Settings.Default.SummarizeLocalPath = NormalizePath(SummarizeLocalPathTextBox.Text);
+                Properties.Settings.Default.SummarizeLocalModel = (SummarizeLocalModelTextBox.Text ?? string.Empty).Trim();
 
                 // Save Device Selections
                 Properties.Settings.Default.SystemAudioDeviceId = SystemAudioDeviceComboBox.SelectedValue as string;
@@ -300,9 +305,8 @@ namespace AudioTranscriptionApp
                 // Persist settings
                 Properties.Settings.Default.Save();
                 Logger.Info("Settings saved.");
-
-                this.DialogResult = true; // Indicate settings were saved
-                this.Close();
+                // Notify owner without closing
+                try { SettingsSaved?.Invoke(); } catch (Exception ex) { Logger.Warning($"SettingsSaved event handler error: {ex.Message}"); }
              }
              catch (Exception ex)
              {
@@ -362,7 +366,10 @@ namespace AudioTranscriptionApp
             CleanupModelTextBox.IsEnabled = !useLocal;
             CleanupLocalHostTextBox.IsEnabled = useLocal;
             CleanupLocalPathTextBox.IsEnabled = useLocal;
-            CleanupTestButton.IsEnabled = useLocal;
+            CleanupTestButton.IsEnabled = true;
+            CleanupLocalModelTextBox.IsEnabled = useLocal;
+            if (CleanupCloudModelComboBox != null)
+                CleanupCloudModelComboBox.Visibility = useLocal ? Visibility.Collapsed : Visibility.Visible;
         }
 
         private void UpdateSummarizeModeEnabled()
@@ -374,7 +381,10 @@ namespace AudioTranscriptionApp
             SummarizeModelTextBox.IsEnabled = !useLocal;
             SummarizeLocalHostTextBox.IsEnabled = useLocal;
             SummarizeLocalPathTextBox.IsEnabled = useLocal;
-            SummarizeTestButton.IsEnabled = useLocal;
+            SummarizeTestButton.IsEnabled = true;
+            SummarizeLocalModelTextBox.IsEnabled = useLocal;
+            if (SummarizeCloudModelComboBox != null)
+                SummarizeCloudModelComboBox.Visibility = useLocal ? Visibility.Collapsed : Visibility.Visible;
         }
 
         // Local Test Buttons
@@ -385,12 +395,80 @@ namespace AudioTranscriptionApp
 
         private async void CleanupTestButton_Click(object sender, RoutedEventArgs e)
         {
-            await TestLocalEndpointAsync(CleanupLocalHostTextBox.Text);
+            bool useLocal = CleanupLocalRadio.IsChecked == true;
+            if (useLocal)
+            {
+                await TestChatLocalAndPopulateModelAsync(CleanupLocalHostTextBox.Text, CleanupLocalModelTextBox);
+            }
+            else
+            {
+                string key = ShowCleanupApiKeyCheckBox.IsChecked == true ? CleanupApiKeyTextBox.Text : CleanupApiKeyBox.Password;
+                await PopulateCloudModelsAsync(key, CleanupCloudModelComboBox, CleanupModelTextBox);
+            }
         }
 
         private async void SummarizeTestButton_Click(object sender, RoutedEventArgs e)
         {
-            await TestLocalEndpointAsync(SummarizeLocalHostTextBox.Text);
+            bool useLocal = SummarizeLocalRadio.IsChecked == true;
+            if (useLocal)
+            {
+                await TestChatLocalAndPopulateModelAsync(SummarizeLocalHostTextBox.Text, SummarizeLocalModelTextBox);
+            }
+            else
+            {
+                string key = ShowSummarizeApiKeyCheckBox.IsChecked == true ? SummarizeApiKeyTextBox.Text : SummarizeApiKeyBox.Password;
+                await PopulateCloudModelsAsync(key, SummarizeCloudModelComboBox, SummarizeModelTextBox);
+            }
+        }
+
+        private async System.Threading.Tasks.Task PopulateCloudModelsAsync(string apiKey, System.Windows.Controls.ComboBox combo, System.Windows.Controls.TextBox targetModelTextBox)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(apiKey))
+                {
+                    System.Windows.MessageBox.Show("Enter API key first.", "Missing Key", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+                using (var svc = new OpenAiChatService(apiKey))
+                {
+                    var models = await svc.ListModelsAsync();
+                    if (models == null || models.Count == 0)
+                    {
+                        System.Windows.MessageBox.Show("No models returned.", "OpenAI Models", MessageBoxButton.OK, MessageBoxImage.Information);
+                        return;
+                    }
+                    combo.ItemsSource = models;
+                    var saved = targetModelTextBox.Text;
+                    if (!string.IsNullOrWhiteSpace(saved) && models.Contains(saved))
+                        combo.SelectedItem = saved;
+                    else
+                        combo.SelectedIndex = 0;
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("Failed to list cloud models.", ex);
+                System.Windows.MessageBox.Show($"Failed to list models: {ex.Message}", "OpenAI Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void CleanupCloudModelComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            var selected = (sender as System.Windows.Controls.ComboBox)?.SelectedItem as string;
+            if (!string.IsNullOrWhiteSpace(selected))
+            {
+                CleanupModelTextBox.Text = selected;
+            }
+        }
+
+        private void SummarizeCloudModelComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            var selected = (sender as System.Windows.Controls.ComboBox)?.SelectedItem as string;
+            if (!string.IsNullOrWhiteSpace(selected))
+            {
+                SummarizeModelTextBox.Text = selected;
+            }
         }
 
         private async System.Threading.Tasks.Task TestLocalEndpointAsync(string host)
@@ -496,6 +574,74 @@ namespace AudioTranscriptionApp
             {
                 Logger.Error("Local config test error", ex);
                 TranscriptionLocalModelTextBox.Text = "Server not found";
+                System.Windows.MessageBox.Show("Server not found", "Local Test", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
+        private async System.Threading.Tasks.Task TestChatLocalAndPopulateModelAsync(string host, System.Windows.Controls.TextBox targetModelTextBox)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(host))
+                {
+                    System.Windows.MessageBox.Show("Enter Local Host including protocol and port, e.g., http://localhost:1234", "Missing Host", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                string url = host.Trim().TrimEnd('/') + "/v1/config";
+                Logger.Info($"Testing local chat server config: {url}");
+                using (var client = new System.Net.Http.HttpClient())
+                {
+                    client.Timeout = TimeSpan.FromSeconds(5);
+                    var response = await client.GetAsync(url);
+                    Logger.Info($"Local chat config response: {(int)response.StatusCode} {response.StatusCode}");
+                    if (response.IsSuccessStatusCode)
+                    {
+                        string content = await response.Content.ReadAsStringAsync();
+                        try
+                        {
+                            var jo = JObject.Parse(content);
+                            // Try a few common casings: Llama/llama/lLama
+                            string modelName =
+                                (string)(jo.SelectToken("Llama.ModelName") ?? jo.SelectToken("llama.modelName") ?? jo.SelectToken("lLama.modelName")) ?? string.Empty;
+                            if (!string.IsNullOrWhiteSpace(modelName))
+                            {
+                                targetModelTextBox.Text = modelName;
+                                System.Windows.MessageBox.Show("Connection successful.", "Local Test", MessageBoxButton.OK, MessageBoxImage.Information);
+                                return;
+                            }
+                            else
+                            {
+                                Logger.Warning("/v1/config response did not include a recognizable Llama model name.");
+                                System.Windows.MessageBox.Show("Connection successful, but model not reported.", "Local Test", MessageBoxButton.OK, MessageBoxImage.Warning);
+                                return;
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Warning($"Failed to parse /v1/config JSON: {ex.Message}");
+                            System.Windows.MessageBox.Show("Connection successful, but invalid config format.", "Local Test", MessageBoxButton.OK, MessageBoxImage.Warning);
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        targetModelTextBox.Text = "Server not found";
+                        System.Windows.MessageBox.Show("Server not found", "Local Test", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
+                }
+            }
+            catch (System.Threading.Tasks.TaskCanceledException)
+            {
+                Logger.Warning("Local chat config test failed: timed out after 5s");
+                targetModelTextBox.Text = "Server not found";
+                System.Windows.MessageBox.Show("Server not found", "Local Test", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("Local chat config test error", ex);
+                targetModelTextBox.Text = "Server not found";
                 System.Windows.MessageBox.Show("Server not found", "Local Test", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }

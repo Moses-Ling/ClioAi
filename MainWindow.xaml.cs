@@ -519,35 +519,41 @@ namespace AudioTranscriptionApp
         {
             Logger.Info("SettingsButton clicked.");
             var settingsWindow = new SettingsWindow { Owner = this };
+            // Apply settings live whenever user clicks Save (dialog remains open)
+            settingsWindow.SettingsSaved += ApplySettingsAfterSave;
             bool? result = settingsWindow.ShowDialog();
             Logger.Info($"Settings window closed with result: {result}");
-
             if (result == true)
             {
-                Logger.Info("Reloading settings after save.");
-                try
-                {
-                    // Reload API Keys
-                    LoadApiKeys();
-
-                    // V2: Reload selected device IDs and re-initialize service
-                    string systemDeviceId = Properties.Settings.Default.SystemAudioDeviceId;
-                    string micDeviceId = Properties.Settings.Default.MicrophoneDeviceId;
-                    Logger.Info($"Retrieved System Audio Device ID from settings: {systemDeviceId ?? "None"}");
-                    Logger.Info($"Retrieved Microphone Device ID from settings: {micDeviceId ?? "None"}");
-
-                    // Apply devices to service instance (which triggers re-initialization)
-                    _audioCaptureService.SetSystemAudioDevice(systemDeviceId);
-                    _audioCaptureService.SetMicrophoneDevice(micDeviceId);
-
-                }
-                catch (Exception ex)
-                {
-                    Logger.Error("Failed to reload settings or re-initialize audio service.", ex);
-                    System.Windows.MessageBox.Show("Error applying settings. Please check logs.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-                StatusTextBlock.Text = "Settings saved and applied.";
+                // Backward compatibility if DialogResult is set true elsewhere
+                ApplySettingsAfterSave();
             }
+        }
+
+        private void ApplySettingsAfterSave()
+        {
+            Logger.Info("Reloading settings after save.");
+            try
+            {
+                // Reload API Keys
+                LoadApiKeys();
+
+                // V2: Reload selected device IDs and re-initialize service
+                string systemDeviceId = Properties.Settings.Default.SystemAudioDeviceId;
+                string micDeviceId = Properties.Settings.Default.MicrophoneDeviceId;
+                Logger.Info($"Retrieved System Audio Device ID from settings: {systemDeviceId ?? "None"}");
+                Logger.Info($"Retrieved Microphone Device ID from settings: {micDeviceId ?? "None"}");
+
+                // Apply devices to service instance (which triggers re-initialization)
+                _audioCaptureService.SetSystemAudioDevice(systemDeviceId);
+                _audioCaptureService.SetMicrophoneDevice(micDeviceId);
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("Failed to reload settings or re-initialize audio service.", ex);
+                System.Windows.MessageBox.Show("Error applying settings. Please check logs.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            StatusTextBlock.Text = "Settings saved and applied.";
         }
 
          private string GenerateHtmlWithCopy(string markdownContent)

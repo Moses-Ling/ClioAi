@@ -23,6 +23,10 @@ You can build with Visual Studio or from the command line. For CLI builds on .NE
 
 Recommended options:
 
+### Shell/Terminal
+- On Windows, run all commands from PowerShell (not Bash). This repo’s examples and scripts assume PowerShell.
+- When using an AI assistant or automation, default to PowerShell for shell commands.
+
 1) Visual Studio 2022 / Developer Command Prompt
 - Open the solution `AudioTranscriptionApp.sln` in VS and Build, or
 - Launch "Developer Command Prompt for VS 2022" and run:

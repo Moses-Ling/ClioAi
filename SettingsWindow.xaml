@@ -127,6 +127,7 @@
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
@@ -150,15 +151,18 @@
                                 <CheckBox Grid.Column="1" x:Name="ShowCleanupApiKeyCheckBox" Content="Show" VerticalAlignment="Center" Margin="5,0,0,0" Checked="ShowCleanupApiKeyCheckBox_Checked" Unchecked="ShowCleanupApiKeyCheckBox_Unchecked"/>
                             </Grid>
                             <Label Grid.Row="2" Grid.Column="0" Content="Cloud Model:" VerticalAlignment="Center"/>
-                            <TextBox Grid.Row="2" Grid.Column="1" x:Name="CleanupModelTextBox" Margin="5"/>
+                            <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Margin="5">
+                                <TextBox x:Name="CleanupModelTextBox" Width="220"/>
+                                <ComboBox x:Name="CleanupCloudModelComboBox" Width="260" Margin="8,0,0,0" SelectionChanged="CleanupCloudModelComboBox_SelectionChanged"/>
+                            </StackPanel>
                             <!-- Local -->
                             <Label Grid.Row="3" Grid.Column="0" Content="Local Host:" VerticalAlignment="Center"/>
                             <TextBox Grid.Row="3" Grid.Column="1" x:Name="CleanupLocalHostTextBox" Margin="5" ToolTip="Include protocol and port, e.g., http://localhost:1234"/>
+                            <Button Grid.Row="3" Grid.Column="2" x:Name="CleanupTestButton" Content="Test" Margin="8,0,0,0" Padding="10,2" MinWidth="50" Click="CleanupTestButton_Click"/>
                             <Label Grid.Row="4" Grid.Column="0" Content="Local Path:" VerticalAlignment="Center"/>
-                            <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal" Margin="5">
-                                <TextBox x:Name="CleanupLocalPathTextBox" Width="220" ToolTip="Must start with / e.g., /v1/chat/completions"/>
-                                <Button x:Name="CleanupTestButton" Content="Test" Margin="8,0,0,0" Padding="10,2" MinWidth="50" Click="CleanupTestButton_Click"/>
-                            </StackPanel>
+                            <TextBox Grid.Row="4" Grid.Column="1" x:Name="CleanupLocalPathTextBox" Margin="5" ToolTip="Must start with / e.g., /v1/chat/completions"/>
+                            <Label Grid.Row="5" Grid.Column="0" Content="Local Model:" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="5" Grid.Column="1" x:Name="CleanupLocalModelTextBox" Margin="5" IsReadOnly="True" ToolTip="Populated from local server /v1/config via Test"/>
                         </Grid>
                     </GroupBox>
                     <GroupBox Header="Prompt">
@@ -173,6 +177,7 @@
                     <GroupBox Header="Summarize" Margin="0,0,0,10">
                         <Grid Margin="10,5,10,10">
                             <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
@@ -201,15 +206,18 @@
                                 <CheckBox Grid.Column="1" x:Name="ShowSummarizeApiKeyCheckBox" Content="Show" VerticalAlignment="Center" Margin="5,0,0,0" Checked="ShowSummarizeApiKeyCheckBox_Checked" Unchecked="ShowSummarizeApiKeyCheckBox_Unchecked"/>
                             </Grid>
                             <Label Grid.Row="2" Grid.Column="0" Content="Cloud Model:" VerticalAlignment="Center"/>
-                            <TextBox Grid.Row="2" Grid.Column="1" x:Name="SummarizeModelTextBox" Margin="5"/>
+                            <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Margin="5">
+                                <TextBox x:Name="SummarizeModelTextBox" Width="220"/>
+                                <ComboBox x:Name="SummarizeCloudModelComboBox" Width="260" Margin="8,0,0,0" SelectionChanged="SummarizeCloudModelComboBox_SelectionChanged"/>
+                            </StackPanel>
                             <!-- Local -->
                             <Label Grid.Row="3" Grid.Column="0" Content="Local Host:" VerticalAlignment="Center"/>
                             <TextBox Grid.Row="3" Grid.Column="1" x:Name="SummarizeLocalHostTextBox" Margin="5" ToolTip="Include protocol and port, e.g., http://localhost:1234"/>
+                            <Button Grid.Row="3" Grid.Column="2" x:Name="SummarizeTestButton" Content="Test" Margin="8,0,0,0" Padding="10,2" MinWidth="50" Click="SummarizeTestButton_Click"/>
                             <Label Grid.Row="4" Grid.Column="0" Content="Local Path:" VerticalAlignment="Center"/>
-                            <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal" Margin="5">
-                                <TextBox x:Name="SummarizeLocalPathTextBox" Width="220" ToolTip="Must start with / e.g., /v1/chat/completions"/>
-                                <Button x:Name="SummarizeTestButton" Content="Test" Margin="8,0,0,0" Padding="10,2" MinWidth="50" Click="SummarizeTestButton_Click"/>
-                            </StackPanel>
+                            <TextBox Grid.Row="4" Grid.Column="1" x:Name="SummarizeLocalPathTextBox" Margin="5" ToolTip="Must start with / e.g., /v1/chat/completions"/>
+                            <Label Grid.Row="5" Grid.Column="0" Content="Local Model:" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="5" Grid.Column="1" x:Name="SummarizeLocalModelTextBox" Margin="5" IsReadOnly="True" ToolTip="Populated from local server /v1/config via Test"/>
                         </Grid>
                     </GroupBox>
                     <GroupBox Header="Prompt">
@@ -247,7 +255,7 @@
         <!-- Buttons -->
         <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
             <Button x:Name="SaveButton" Content="Save" Width="80" Margin="5" Click="SaveButton_Click" IsDefault="True"/>
-            <Button x:Name="CancelButton" Content="Cancel" Width="80" Margin="5" Click="CancelButton_Click" IsCancel="True"/>
+            <Button x:Name="CancelButton" Content="Close" Width="80" Margin="5" Click="CancelButton_Click" IsCancel="True"/>
         </StackPanel>
 
     </Grid>
