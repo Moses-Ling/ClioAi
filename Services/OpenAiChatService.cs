@@ -70,6 +70,8 @@ namespace AudioTranscriptionApp.Services
             Logger.Info("OpenAiChatService initializing.");
             _httpClient = new HttpClient();
             _httpClient.BaseAddress = new Uri("https://api.openai.com/");
+            // Extend timeout to handle long-running summarize/cleanup operations
+            _httpClient.Timeout = TimeSpan.FromMinutes(10);
             UpdateApiKey(apiKey); // Use the method to set header and local field
         }
 
@@ -98,15 +100,30 @@ namespace AudioTranscriptionApp.Services
         public async Task<string> GetResponseAsync(string systemPrompt, string userPrompt, string model)
         {
             // Backward-compatible method: defaults to Cloud behavior
-            return await SendChatAsync(systemPrompt, userPrompt, model, useLocal: false, localHost: null, localPath: null);
+            return await SendChatAsync(systemPrompt, userPrompt, model, useLocal: false, localHost: null, localPath: null, System.Threading.CancellationToken.None);
         } // This closing brace belongs to GetResponseAsync
+
+        // Overload with cancellation support
+        public async Task<string> GetResponseAsync(string systemPrompt, string userPrompt, string model, System.Threading.CancellationToken cancellationToken)
+        {
+            return await SendChatAsync(systemPrompt, userPrompt, model, useLocal: false, localHost: null, localPath: null, cancellationToken);
+        }
 
         public async Task<string> GetCleanupResponseAsync(string systemPrompt, string userPrompt, string model)
         {
             bool useLocal = AudioTranscriptionApp.Properties.Settings.Default.CleanupUseLocal;
             string host = AudioTranscriptionApp.Properties.Settings.Default.CleanupLocalHost;
             string path = AudioTranscriptionApp.Properties.Settings.Default.CleanupLocalPath;
-            return await SendChatAsync(systemPrompt, userPrompt, model, useLocal, host, path);
+            return await SendChatAsync(systemPrompt, userPrompt, model, useLocal, host, path, System.Threading.CancellationToken.None);
+        }
+
+        // Overload with cancellation support
+        public async Task<string> GetCleanupResponseAsync(string systemPrompt, string userPrompt, string model, System.Threading.CancellationToken cancellationToken)
+        {
+            bool useLocal = AudioTranscriptionApp.Properties.Settings.Default.CleanupUseLocal;
+            string host = AudioTranscriptionApp.Properties.Settings.Default.CleanupLocalHost;
+            string path = AudioTranscriptionApp.Properties.Settings.Default.CleanupLocalPath;
+            return await SendChatAsync(systemPrompt, userPrompt, model, useLocal, host, path, cancellationToken);
         }
 
         public async Task<string> GetSummarizeResponseAsync(string systemPrompt, string userPrompt, string model)
@@ -114,10 +131,19 @@ namespace AudioTranscriptionApp.Services
             bool useLocal = AudioTranscriptionApp.Properties.Settings.Default.SummarizeUseLocal;
             string host = AudioTranscriptionApp.Properties.Settings.Default.SummarizeLocalHost;
             string path = AudioTranscriptionApp.Properties.Settings.Default.SummarizeLocalPath;
-            return await SendChatAsync(systemPrompt, userPrompt, model, useLocal, host, path);
+            return await SendChatAsync(systemPrompt, userPrompt, model, useLocal, host, path, System.Threading.CancellationToken.None);
         }
 
-        private async Task<string> SendChatAsync(string systemPrompt, string userPrompt, string model, bool useLocal, string localHost, string localPath)
+        // Overload with cancellation support
+        public async Task<string> GetSummarizeResponseAsync(string systemPrompt, string userPrompt, string model, System.Threading.CancellationToken cancellationToken)
+        {
+            bool useLocal = AudioTranscriptionApp.Properties.Settings.Default.SummarizeUseLocal;
+            string host = AudioTranscriptionApp.Properties.Settings.Default.SummarizeLocalHost;
+            string path = AudioTranscriptionApp.Properties.Settings.Default.SummarizeLocalPath;
+            return await SendChatAsync(systemPrompt, userPrompt, model, useLocal, host, path, cancellationToken);
+        }
+
+        private async Task<string> SendChatAsync(string systemPrompt, string userPrompt, string model, bool useLocal, string localHost, string localPath, System.Threading.CancellationToken cancellationToken)
         {
             Logger.Info($"Attempting chat completion (useLocal={useLocal}), model='{(useLocal ? "<omitted>" : model)}', systemLen={systemPrompt?.Length ?? 0}, userLen={userPrompt?.Length ?? 0}, host='{(useLocal ? localHost : null)}', path='{(useLocal ? localPath : null)}'");
             if (!useLocal)
@@ -163,7 +189,7 @@ namespace AudioTranscriptionApp.Services
                         Logger.Info($"Sending local chat completion request to {url}...");
                         try
                         {
-                            response = await _httpClient.PostAsync(url, content);
+                            response = await _httpClient.PostAsync(url, content, cancellationToken);
                         }
                         finally
                         {
@@ -173,7 +199,7 @@ namespace AudioTranscriptionApp.Services
                     else
                     {
                         Logger.Info("Sending chat completion request to OpenAI API...");
-                        response = await _httpClient.PostAsync("/v1/chat/completions", content);
+                        response = await _httpClient.PostAsync("/v1/chat/completions", content, cancellationToken);
                     }
                     Logger.Info($"Received API response status: {response.StatusCode}");
 
@@ -218,6 +244,14 @@ namespace AudioTranscriptionApp.Services
                             throw new Exception($"API Error: {response.StatusCode} - {errorContent}");
                         }
                     }
+                }
+                catch (OperationCanceledException ocex)
+                {
+                    // Distinguish between user cancellation and timeout
+                    bool wasTimeout = !cancellationToken.IsCancellationRequested;
+                    string reason = wasTimeout ? "timeout or network stall" : "user cancellation";
+                    Logger.Warning($"Chat completion canceled due to {reason}: {ocex.Message}");
+                    throw;
                 }
                 catch (HttpRequestException httpEx)
                 {

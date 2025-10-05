@@ -12,6 +12,7 @@ using System.Windows;
 using System.Windows.Controls;
 using Markdig;
 using System.Diagnostics;
+using System.Threading;
 using System.Windows.Media;
 
 
@@ -26,6 +27,8 @@ namespace AudioTranscriptionApp
         private string _lastSaveDirectory = null;
         private string _lastOpenDialogDirectory = null; // remembers last opened folder for this session
         private int _audioTooShortWarningCount = 0;
+        private CancellationTokenSource _chatCts;
+        private bool _chatInProgress = false;
 
         public MainWindow()
         {
@@ -401,11 +404,14 @@ namespace AudioTranscriptionApp
             }
 
             SetUiBusyState(true, "Cleaning up text...");
+            _chatInProgress = true;
+            _chatCts = new CancellationTokenSource();
+            SetUiBusyState(true, "Cleaning up text...");
 
             try
             {
                 Logger.Info($"Calling Chat API for cleanup (Model: {cleanupModel})...");
-                string cleanedText = await _openAiChatService.GetCleanupResponseAsync(cleanupPrompt, originalText, cleanupModel);
+                string cleanedText = await _openAiChatService.GetCleanupResponseAsync(cleanupPrompt, originalText, cleanupModel, _chatCts.Token);
 
                 if (cleanedText != null)
                 {
@@ -432,6 +438,11 @@ namespace AudioTranscriptionApp
                     System.Windows.MessageBox.Show("Cleanup failed: Received an empty response from the API.", "Cleanup Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
+            catch (OperationCanceledException)
+            {
+                Logger.Warning("Cleanup operation was canceled by user or timed out.");
+                StatusTextBlock.Text = "Cleanup canceled.";
+            }
             catch (Exception ex)
             {
                 Logger.Error("Error during cleanup process.", ex);
@@ -440,6 +451,9 @@ namespace AudioTranscriptionApp
             }
             finally
             {
+                _chatInProgress = false;
+                _chatCts?.Dispose();
+                _chatCts = null;
                 SetUiBusyState(false);
             }
         }
@@ -485,11 +499,14 @@ namespace AudioTranscriptionApp
             Logger.Info($"Summarize input length={textToSummarize?.Length ?? 0}, useLocal={summarizeUseLocal}, model='{summarizeModel}', host='{(summarizeUseLocal ? summarizeLocalHost : null)}', path='{(summarizeUseLocal ? summarizeLocalPath : null)}'");
 
             SetUiBusyState(true, "Summarizing text...");
+            _chatInProgress = true;
+            _chatCts = new CancellationTokenSource();
+            SetUiBusyState(true, "Summarizing text...");
 
             try
             {
                 Logger.Info($"Calling Chat API for summarization (Model: {summarizeModel})...");
-                string summaryMd = await _openAiChatService.GetSummarizeResponseAsync(summarizePrompt, textToSummarize, summarizeModel);
+                string summaryMd = await _openAiChatService.GetSummarizeResponseAsync(summarizePrompt, textToSummarize, summarizeModel, _chatCts.Token);
 
                 if (summaryMd != null)
                 {
@@ -541,6 +558,11 @@ namespace AudioTranscriptionApp
                     System.Windows.MessageBox.Show("Summarization failed: Received an empty response from the API.", "Summarize Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
+            catch (OperationCanceledException)
+            {
+                Logger.Warning("Summarization operation was canceled by user or timed out.");
+                StatusTextBlock.Text = "Summarization canceled.";
+            }
             catch (Exception ex)
             {
                 Logger.Error("Error during summarization process.", ex);
@@ -549,6 +571,9 @@ namespace AudioTranscriptionApp
             }
             finally
             {
+                _chatInProgress = false;
+                _chatCts?.Dispose();
+                _chatCts = null;
                 SetUiBusyState(false);
             }
         }
@@ -558,6 +583,13 @@ namespace AudioTranscriptionApp
         {
             Logger.Info("ClearButton clicked.");
             ElapsedTimeTextBlock.Visibility = Visibility.Collapsed;
+            if (_chatInProgress)
+            {
+                Logger.Info("Cancel requested by user.");
+                StatusTextBlock.Text = "Cancelling current request...";
+                try { _chatCts?.Cancel(); } catch { }
+                return;
+            }
             if (!string.IsNullOrEmpty(TranscriptionTextBox.Text))
             {
                 if (System.Windows.MessageBox.Show("Are you sure you want to clear the transcription?",
@@ -706,20 +738,29 @@ namespace AudioTranscriptionApp
  </html>";
          }
 
-         private void SetUiBusyState(bool isBusy, string statusText = null)
+        private void SetUiBusyState(bool isBusy, string statusText = null)
         {
              StartButton.IsEnabled = !isBusy;
              StopButton.IsEnabled = isBusy && _isRecording;
              bool canProcessText = !isBusy && !string.IsNullOrEmpty(TranscriptionTextBox.Text) && !TranscriptionTextBox.Text.StartsWith("AUDIO TRANSCRIPTION APP INSTRUCTIONS");
              bool cleanedFileExists = !string.IsNullOrEmpty(_lastSaveDirectory) && File.Exists(Path.Combine(_lastSaveDirectory, "cleaned.txt"));
              CleanupButton.IsEnabled = canProcessText && !string.IsNullOrEmpty(_lastSaveDirectory) && !cleanedFileExists;
-              SummarizeButton.IsEnabled = canProcessText;
-              ClearButton.IsEnabled = !isBusy;
-              SettingsButton.IsEnabled = !isBusy;
-              // Mute checkboxes should ALWAYS be enabled if the service is initialized
-              bool serviceReady = _audioCaptureService != null; // Add a check if needed, assume true for now
-              MuteMicCheckBox.IsEnabled = serviceReady;
-              MuteSystemAudioCheckBox.IsEnabled = serviceReady;
+             SummarizeButton.IsEnabled = canProcessText;
+             if (_chatInProgress)
+             {
+                 ClearButton.Content = "Cancel";
+                 ClearButton.IsEnabled = true;
+             }
+             else
+             {
+                 ClearButton.Content = "Clear";
+                 ClearButton.IsEnabled = !isBusy;
+             }
+             SettingsButton.IsEnabled = !isBusy;
+             // Mute checkboxes should ALWAYS be enabled if the service is initialized
+             bool serviceReady = _audioCaptureService != null; // Add a check if needed, assume true for now
+             MuteMicCheckBox.IsEnabled = serviceReady;
+             MuteSystemAudioCheckBox.IsEnabled = serviceReady;
 
 
              if (isBusy)
