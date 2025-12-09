@@ -1,0 +1,19 @@
+with this branch, I want to implement the following 
+Refactor the current auth to "use Repit Auth" for user login management. Implement Google,  Apple, and Email. 
+Provide new Auth tool from the Repit Auth
+
+For new accounts:
+	1. Use OpenID Connect user date scope to create a new account. 
+	2. Use "email" scope for Username
+	3. Use "profile" scope for user's first name and last name for Name
+	4. Use the image URL as the card default image. download and save the image on account creation. User can change that later when they filling in the information for their card.  
+
+For new account email sign-in, 
+	1. Use the email address as Username
+	2. Email the temporary password to the email
+	3. Prompt the user to change the password on the first login 
+	4. Name will be filled in when the user starts filling in information for the card. 
+
+Remove all existing accounts, and make the first login user the admin. the following user are NOT admin but can be promoted my admin as needed. 
+
+In the user Admin page, new Repit Auth account no longer needs the password reset function since it is managed via Repit Auth
