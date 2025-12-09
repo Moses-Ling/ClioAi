@@ -52,7 +52,12 @@ Recommended options:
   - `C:\Program Files\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin` (or `...\amd64`)
 - Or set a global variable for scripts that respect it:
   - `MSBUILD_EXE_PATH=C:\Program Files\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin\MSBuild.exe`
-- Open a new terminal after changing PATH/environment variables.
+  - Open a new terminal after changing PATH/environment variables.
+
+## Cleanup
+
+- Quick cleanup: `scripts\clean.cmd` removes local `bin/`, `obj/`, `.vs/`, `tests/bin`, `tests/obj`, and `*.log` files.
+- Docs moved to `docs/`: PRDs, plans, manuals, and notes now live under the `docs/` folder to keep the root tidy. `README.md` and `AGENTS.md` remain at the root.
 
 ## Test
 
